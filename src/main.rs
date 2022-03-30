@@ -91,6 +91,17 @@ pub unsafe extern "C" fn _entry() -> ! {
 }
 
 #[panic_handler]
-fn panic(_info: &core::panic::PanicInfo) -> ! {
+fn panic(info: &core::panic::PanicInfo) -> ! {
+    print!("Panic: ");
+    if let Some(location) = info.location() {
+        println!(
+            "line: {}, file: {}: {}",
+            location.line(),
+            location.file(),
+            info.message().unwrap()
+        );
+    } else {
+        println!("No information available");
+    }
     loop {}
 }
