@@ -2,16 +2,25 @@
 #![no_std]
 #![no_main]
 
+extern crate alloc;
 extern crate copland_os;
 
+use alloc::vec::Vec;
+use allocator::init_allocator;
 use copland_os::csr::*;
 use copland_os::*;
 use core::arch::asm;
 
 pub unsafe extern "C" fn main() -> ! {
+    init_allocator();
     let mut uart = uart::Uart::new();
     uart.init();
     println!("PRESENT DAY\n  PRESENT TIME");
+    let mut vector = Vec::new();
+    for i in 0..100 {
+        vector.push(i);
+    }
+    println!("vector[42] = {}", vector[42]);
     loop {}
 }
 
