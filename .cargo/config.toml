@@ -12,7 +12,7 @@ rustflags = [
 ]
 
 [target.aarch64-unknown-none-softfloat]
-runner = "qemu-system-aarch64 -machine raspi3b -m 256M -kernel "
+runner = "qemu-system-aarch64 -machine raspi3b -m 1G -kernel "
 rustflags = [
   "-Clink-args=-Traspi3b.ld",
 ]

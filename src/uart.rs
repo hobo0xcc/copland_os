@@ -1,8 +1,13 @@
 #![allow(dead_code)]
 
-use crate::arch::riscv64::address::_uart0_start;
 use core::fmt::{Error, Write};
 use volatile_register::RW;
+
+#[cfg(target_arch = "riscv64")]
+use crate::arch::riscv64::address;
+
+#[cfg(target_arch = "aarch64")]
+use crate::arch::aarch64::address;
 
 // https://en.wikibooks.org/wiki/Serial_Programming/8250_UART_Programming#UART_Registers
 
@@ -26,7 +31,7 @@ pub struct Uart {
 impl Uart {
     pub fn new() -> Self {
         Self {
-            reg: (_uart0_start as usize) as *mut [RW<u8>; 8],
+            reg: (address::_uart0_start as usize) as *mut [RW<u8>; 8],
         }
     }
 

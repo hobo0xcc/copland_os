@@ -5,7 +5,6 @@
 extern crate alloc;
 extern crate copland_os;
 
-use allocator::init_allocator;
 use copland_os::*;
 use core::arch::asm;
 
@@ -15,7 +14,7 @@ pub unsafe extern "C" fn main() -> ! {
     if riscv::cpuid() != 0 {
         loop {}
     }
-    init_allocator();
+    allocator::init_allocator();
     plic::plic_init();
     plic::plic_init_hart();
     let mut uart = uart::Uart::new();
@@ -93,6 +92,8 @@ pub unsafe extern "C" fn start() -> ! {
 pub unsafe extern "C" fn boot() -> ! {
     #[cfg(target_arch = "riscv64")]
     asm!(include_str!("arch/riscv64/boot.S"));
+    #[cfg(target_arch = "aarch64")]
+    asm!(include_str!("arch/aarch64/boot.S"));
     loop {}
 }
 
@@ -102,6 +103,8 @@ pub unsafe extern "C" fn boot() -> ! {
 pub unsafe extern "C" fn _entry() -> ! {
     #[cfg(target_arch = "riscv64")]
     asm!("j boot");
+    #[cfg(target_arch = "aarch64")]
+    asm!("b boot");
     loop {}
 }
 

@@ -1,16 +1,20 @@
 pub mod watermark;
 
-use crate::arch::riscv64::address::_heap_end;
-use crate::arch::riscv64::address::_heap_start;
 use core::alloc::Layout;
 use watermark::WaterMarkAllocator;
+
+#[cfg(target_arch = "riscv64")]
+use crate::arch::riscv64::address;
+
+#[cfg(target_arch = "aarch64")]
+use crate::arch::aarch64::address;
 
 #[global_allocator]
 static mut ALLOCATOR: WaterMarkAllocator = WaterMarkAllocator::empty();
 
 pub fn init_allocator() {
-    let heap_start = _heap_start as usize;
-    let heap_end = _heap_end as usize;
+    let heap_start = address::_heap_start as usize;
+    let heap_end = address::_heap_end as usize;
     unsafe {
         ALLOCATOR = WaterMarkAllocator::new(heap_start, heap_end);
     }
