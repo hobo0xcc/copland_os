@@ -31,3 +31,23 @@ The compiled executable is `./target/riscv64gc-unknown-none-elf/[build mode]/cop
 ```bash
 cargo run # this requires qemu-system-riscv64
 ```
+
+# Debug with gdb
+
+```bash
+./debug_[board name].sh
+```
+
+```bash
+gdb -x script_[board name].gdb
+```
+
+# Supported boards
+
+## riscv64gc-unknown-none-elf
+
+- virt (wip)
+
+## aarch64-unknown-none-softfloat
+
+- raspi3b (wip)

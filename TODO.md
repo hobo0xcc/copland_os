@@ -1,2 +1,2 @@
 - [x] println macro
-- [ ] Memory allocator
+- [x] Memory allocator
