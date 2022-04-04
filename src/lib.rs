@@ -7,5 +7,5 @@ extern crate volatile_register;
 
 pub mod allocator;
 pub mod arch;
+pub mod device;
 pub mod print;
-pub mod uart;

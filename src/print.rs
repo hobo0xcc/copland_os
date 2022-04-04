@@ -2,7 +2,7 @@
 macro_rules! print {
     ($($args:tt)+) => {{
         use core::fmt::Write;
-        let _ = write!(crate::uart::Uart::new(), $($args)+);
+        let _ = write!(crate::device::virt::uart::Uart::new(), $($args)+);
     }};
 }
 

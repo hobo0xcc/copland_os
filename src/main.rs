@@ -17,7 +17,7 @@ pub unsafe extern "C" fn main() -> ! {
     allocator::init_allocator();
     plic::plic_init();
     plic::plic_init_hart();
-    let mut uart = uart::Uart::new();
+    let mut uart = device::virt::uart::Uart::new();
     uart.init();
     println!("PRESENT DAY\n  PRESENT TIME");
 

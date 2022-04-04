@@ -1,6 +1,6 @@
 use crate::arch::riscv64::csr::*;
 use crate::arch::riscv64::*;
-use crate::uart::Uart;
+use crate::device::virt::uart::Uart;
 use core::arch::global_asm;
 
 global_asm!(include_str!("kernelvec.S"));
