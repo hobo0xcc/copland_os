@@ -52,6 +52,24 @@ impl Uart {
         while (self.read_reg(LSR) & 0b1 << 5) == 0 {}
         self.write_reg(THR, c);
     }
+
+    pub unsafe fn getc(&mut self) -> Option<u8> {
+        if self.read_reg(LSR) & 1 != 0 {
+            Some(self.read_reg(RBR))
+        } else {
+            None
+        }
+    }
+
+    pub unsafe fn interrupt(&mut self) {
+        loop {
+            if let Some(c) = self.getc() {
+                // do something
+            } else {
+                break;
+            }
+        }
+    }
 }
 
 impl Write for Uart {

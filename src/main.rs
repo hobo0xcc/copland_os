@@ -11,19 +11,22 @@ use copland_os::csr::*;
 use copland_os::*;
 use core::arch::asm;
 
+#[cfg(target_arch = "riscv64")]
 pub unsafe extern "C" fn main() -> ! {
+    if riscv::cpuid() != 0 {
+        loop {}
+    }
     init_allocator();
+    plic::plic_init();
+    plic::plic_init_hart();
     let mut uart = uart::Uart::new();
     uart.init();
     println!("PRESENT DAY\n  PRESENT TIME");
-    let mut vector = Vec::new();
-    for i in 0..100 {
-        vector.push(i);
-    }
-    println!("vector[42] = {}", vector[42]);
+
     loop {}
 }
 
+#[cfg(target_arch = "riscv64")]
 unsafe extern "C" fn pmp_init() {
     let pmpaddr0 = (!0_usize) >> 10;
     asm!("csrw pmpaddr0, {}", in(reg)pmpaddr0);
@@ -36,6 +39,7 @@ unsafe extern "C" fn pmp_init() {
 }
 
 #[no_mangle]
+#[cfg(target_arch = "riscv64")]
 pub unsafe extern "C" fn start() -> ! {
     let mut mstatus = Csr::Mstatus.read();
     mstatus &= !Mstatus::MPP.mask();
@@ -78,7 +82,7 @@ pub unsafe extern "C" fn start() -> ! {
 
     asm!("csrr tp, mhartid");
 
-    // Csr::Stvec.write(handler::kernelvec as usize);
+    Csr::Stvec.write(trap::kernel_vec as usize);
 
     asm!("mret");
 
@@ -86,6 +90,7 @@ pub unsafe extern "C" fn start() -> ! {
 }
 
 #[no_mangle]
+#[cfg(target_arch = "riscv64")]
 pub unsafe extern "C" fn boot() -> ! {
     asm!(include_str!("boot.S"));
     loop {}
@@ -94,6 +99,7 @@ pub unsafe extern "C" fn boot() -> ! {
 #[no_mangle]
 #[start]
 #[link_section = ".text.boot"]
+#[cfg(target_arch = "riscv64")]
 pub unsafe extern "C" fn _entry() -> ! {
     asm!("j boot");
     loop {}

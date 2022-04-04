@@ -8,5 +8,8 @@ extern crate volatile_register;
 pub mod address;
 pub mod allocator;
 pub mod csr;
+pub mod plic;
 pub mod print;
+pub mod riscv;
+pub mod trap;
 pub mod uart;

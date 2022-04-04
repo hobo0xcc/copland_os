@@ -8,5 +8,11 @@ target = "riscv64gc-unknown-none-elf"
 [target.riscv64gc-unknown-none-elf]
 runner = "qemu-system-riscv64 -machine virt -bios none -m 256M -smp 1 -serial stdio -kernel "
 rustflags = [
-  "-Clink-args=-Tlinker.ld",
+  "-Clink-args=-Tvirt.ld",
+]
+
+[target.aarch64-unknown-none-softfloat]
+runner = "qemu-system-aarch64 -machine raspi3b -m 256M -kernel "
+rustflags = [
+  "-Clink-args=-Traspi3b.ld",
 ]
