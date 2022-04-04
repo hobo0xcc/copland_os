@@ -5,14 +5,13 @@
 extern crate alloc;
 extern crate copland_os;
 
-use alloc::vec::Vec;
 use allocator::init_allocator;
-use copland_os::csr::*;
 use copland_os::*;
 use core::arch::asm;
 
 #[cfg(target_arch = "riscv64")]
 pub unsafe extern "C" fn main() -> ! {
+    use copland_os::arch::riscv64::*;
     if riscv::cpuid() != 0 {
         loop {}
     }
@@ -41,6 +40,7 @@ unsafe extern "C" fn pmp_init() {
 #[no_mangle]
 #[cfg(target_arch = "riscv64")]
 pub unsafe extern "C" fn start() -> ! {
+    use copland_os::arch::riscv64::csr::*;
     let mut mstatus = Csr::Mstatus.read();
     mstatus &= !Mstatus::MPP.mask();
     mstatus |= 0b01_usize << Mstatus::MPP.index(); // 0b01 -> Supervisor Mode
@@ -82,7 +82,7 @@ pub unsafe extern "C" fn start() -> ! {
 
     asm!("csrr tp, mhartid");
 
-    Csr::Stvec.write(trap::kernel_vec as usize);
+    Csr::Stvec.write(arch::riscv64::trap::kernel_vec as usize);
 
     asm!("mret");
 
@@ -90,17 +90,17 @@ pub unsafe extern "C" fn start() -> ! {
 }
 
 #[no_mangle]
-#[cfg(target_arch = "riscv64")]
 pub unsafe extern "C" fn boot() -> ! {
-    asm!(include_str!("boot.S"));
+    #[cfg(target_arch = "riscv64")]
+    asm!(include_str!("arch/riscv64/boot.S"));
     loop {}
 }
 
 #[no_mangle]
 #[start]
 #[link_section = ".text.boot"]
-#[cfg(target_arch = "riscv64")]
 pub unsafe extern "C" fn _entry() -> ! {
+    #[cfg(target_arch = "riscv64")]
     asm!("j boot");
     loop {}
 }

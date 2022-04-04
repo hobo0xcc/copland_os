@@ -1,7 +1,7 @@
 pub mod watermark;
 
-use crate::address::_heap_end;
-use crate::address::_heap_start;
+use crate::arch::riscv64::address::_heap_end;
+use crate::arch::riscv64::address::_heap_start;
 use core::alloc::Layout;
 use watermark::WaterMarkAllocator;
 

@@ -1,5 +1,4 @@
-use crate::address;
-use crate::*;
+use crate::arch::riscv64::*;
 
 pub const UART0_IRQ: usize = 10;
 
@@ -19,7 +18,7 @@ unsafe fn s_mode_enable(hart: usize, source: usize) -> *mut u32 {
 
 unsafe fn s_mode_threshold(hart: usize) -> *mut u32 {
     let threshold_base = (address::_plic_start as usize) + 0x200000;
-    ((threshold_base + hart * 0x2000 + 0x1000) as *mut u32)
+    (threshold_base + hart * 0x2000 + 0x1000) as *mut u32
 }
 
 unsafe fn s_mode_claim(hart: usize) -> *mut u32 {

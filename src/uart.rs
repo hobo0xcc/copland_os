@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use crate::address::_uart0_start;
+use crate::arch::riscv64::address::_uart0_start;
 use core::fmt::{Error, Write};
 use volatile_register::RW;
 
@@ -63,7 +63,7 @@ impl Uart {
 
     pub unsafe fn interrupt(&mut self) {
         loop {
-            if let Some(c) = self.getc() {
+            if let Some(_c) = self.getc() {
                 // do something
             } else {
                 break;

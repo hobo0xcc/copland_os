@@ -1,4 +1,4 @@
-use crate::csr::*;
+use crate::arch::riscv64::csr::*;
 use core::arch::asm;
 
 pub fn cpuid() -> usize {
