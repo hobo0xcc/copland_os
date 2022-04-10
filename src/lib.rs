@@ -3,7 +3,9 @@
 #![no_main]
 
 extern crate alloc;
-extern crate volatile_register;
+extern crate lazy_static;
+extern crate spin;
+extern crate volatile;
 
 pub mod allocator;
 pub mod arch;

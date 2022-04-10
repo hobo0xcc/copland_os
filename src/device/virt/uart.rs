@@ -1,13 +1,23 @@
 #![allow(dead_code)]
 
 use core::fmt::{Error, Write};
-use volatile_register::RW;
+use lazy_static::lazy_static;
+use spin::Mutex;
+use volatile::Volatile;
 
 #[cfg(target_arch = "riscv64")]
 use crate::arch::riscv64::address;
 
 #[cfg(target_arch = "aarch64")]
 use crate::arch::aarch64::address;
+
+lazy_static! {
+    pub static ref UART: Mutex<Uart> = unsafe {
+        let mut uart = Uart::new();
+        uart.init();
+        Mutex::new(uart)
+    };
+}
 
 // https://en.wikibooks.org/wiki/Serial_Programming/8250_UART_Programming#UART_Registers
 
@@ -25,22 +35,22 @@ const MSR: usize = 6;
 const SR: usize = 7;
 
 pub struct Uart {
-    reg: *mut [RW<u8>; 8],
+    regs: &'static mut [Volatile<u8>; 8],
 }
 
 impl Uart {
     pub fn new() -> Self {
         Self {
-            reg: (address::_uart0_start as usize) as *mut [RW<u8>; 8],
+            regs: unsafe { &mut *((address::_uart0_start as usize) as *mut [Volatile<u8>; 8]) },
         }
     }
 
     unsafe fn write_reg(&mut self, index: usize, value: u8) {
-        (*self.reg)[index].write(value)
+        self.regs[index].write(value)
     }
 
     unsafe fn read_reg(&self, index: usize) -> u8 {
-        (*self.reg)[index].read()
+        self.regs[index].read()
     }
 
     pub unsafe fn init(&mut self) {
