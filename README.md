@@ -35,11 +35,11 @@ cargo run # this requires qemu-system-riscv64
 # Debug with gdb
 
 ```bash
-./debug_[board name].sh
+./tools/debug_[board name].sh
 ```
 
 ```bash
-gdb -x script_[board name].gdb
+gdb -x tools/script_[board name].gdb
 ```
 
 # Supported boards
