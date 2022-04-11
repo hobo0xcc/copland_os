@@ -1,6 +1,7 @@
 #![feature(panic_info_message, start)]
 #![no_std]
 #![no_main]
+#![allow(unused_imports)]
 
 extern crate alloc;
 extern crate copland_os;
@@ -12,6 +13,7 @@ use core::arch::asm;
 #[cfg(target_arch = "riscv64")]
 pub unsafe extern "C" fn main() -> ! {
     use copland_os::arch::riscv64::*;
+
     if riscv::cpuid() != 0 {
         loop {}
     }
@@ -44,6 +46,7 @@ pub unsafe extern "C" fn _entry() -> ! {
 }
 
 #[panic_handler]
+#[cfg(target_arch = "riscv64")]
 fn panic(info: &core::panic::PanicInfo) -> ! {
     print!("Panic: ");
     if let Some(location) = info.location() {
@@ -56,5 +59,11 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
     } else {
         println!("No information available");
     }
+    loop {}
+}
+
+#[panic_handler]
+#[cfg(target_arch = "aarch64")]
+fn panic(_info: &core::panic::PanicInfo) -> ! {
     loop {}
 }

@@ -1,15 +1,10 @@
 #![allow(dead_code)]
 
+use crate::arch::riscv64::address;
 use core::fmt::{Error, Write};
 use lazy_static::lazy_static;
 use spin::Mutex;
 use volatile::Volatile;
-
-#[cfg(target_arch = "riscv64")]
-use crate::arch::riscv64::address;
-
-#[cfg(target_arch = "aarch64")]
-use crate::arch::aarch64::address;
 
 lazy_static! {
     pub static ref UART: Mutex<Uart> = unsafe {
