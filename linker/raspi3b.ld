@@ -47,7 +47,7 @@ SECTIONS {
     }
 
     PROVIDE(_stack_start = .);
-    . = . + 0x4000;
+    . = . + 0x10000;
     PROVIDE(_stack_end = .);
 
     PROVIDE(_heap_start = .);

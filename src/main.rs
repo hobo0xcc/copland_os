@@ -6,21 +6,40 @@
 extern crate alloc;
 extern crate copland_os;
 
+use copland_os::kernlock::KernelLock;
 use copland_os::*;
 use core::arch::asm;
+use lazy_static::lazy_static;
+
+lazy_static! {
+    pub static ref KERNEL_LOCK: KernelLock = KernelLock::new();
+}
 
 #[no_mangle]
 #[cfg(target_arch = "riscv64")]
 pub unsafe extern "C" fn main() -> ! {
     use copland_os::arch::riscv64::*;
 
-    if riscv::cpuid() != 0 {
-        loop {}
-    }
+    KERNEL_LOCK.lock();
+
     allocator::init_allocator();
-    plic::plic_init();
-    plic::plic_init_hart();
     println!("PRESENT DAY\n  PRESENT TIME");
+
+    println!("hart: {}", riscv::STATE.lock().cpuid());
+
+    loop {}
+}
+
+#[no_mangle]
+#[cfg(target_arch = "aarch64")]
+pub unsafe extern "C" fn main() -> ! {
+    use copland_os::arch::aarch64::*;
+    KERNEL_LOCK.lock();
+
+    allocator::init_allocator();
+    println!("PRESENT DAY\n  PRESENT TIME");
+
+    println!("hart: {}", arm::STATE.lock().cpuid());
 
     loop {}
 }

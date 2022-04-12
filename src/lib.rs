@@ -10,4 +10,5 @@ extern crate volatile;
 pub mod allocator;
 pub mod arch;
 pub mod device;
+pub mod kernlock;
 pub mod print;

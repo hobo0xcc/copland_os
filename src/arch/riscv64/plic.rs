@@ -31,17 +31,17 @@ pub unsafe fn plic_init() {
 }
 
 pub unsafe fn plic_init_hart() {
-    let hart = riscv::cpuid();
+    let hart = riscv::STATE.lock().cpuid();
     s_mode_enable(hart, UART0_IRQ).write_volatile(1 << (UART0_IRQ % 32));
     s_mode_threshold(hart).write_volatile(0);
 }
 
 pub unsafe fn plic_claim() -> u32 {
-    let hart = riscv::cpuid();
+    let hart = riscv::STATE.lock().cpuid();
     s_mode_claim(hart).read_volatile()
 }
 
 pub unsafe fn plic_complete(irq: u32) {
-    let hart = riscv::cpuid();
+    let hart = riscv::STATE.lock().cpuid();
     s_mode_claim(hart).write_volatile(irq);
 }
