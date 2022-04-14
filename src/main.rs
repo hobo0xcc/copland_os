@@ -23,6 +23,7 @@ pub unsafe extern "C" fn main() -> ! {
     KERNEL_LOCK.lock();
 
     allocator::init_allocator();
+    println!("RISC-V");
     println!("PRESENT DAY\n  PRESENT TIME");
 
     println!("hart: {}", riscv::STATE.lock().cpuid());
@@ -37,6 +38,7 @@ pub unsafe extern "C" fn main() -> ! {
     KERNEL_LOCK.lock();
 
     allocator::init_allocator();
+    println!("AArch64");
     println!("PRESENT DAY\n  PRESENT TIME");
 
     println!("hart: {}", arm::STATE.lock().cpuid());

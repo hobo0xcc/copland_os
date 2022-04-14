@@ -4,50 +4,57 @@ This project is a work in progress. By the way, *Have you ever seen the lain?*
 
 # Requirements
 
-- rust toolchain (nightly)
-  - [https://www.rust-lang.org/tools/install](https://www.rust-lang.org/tools/install)
+- Rust toolchain (nightly)
+  - https://www.rust-lang.org/tools/install
   - `rustup toolchain install nightly && rustup default nightly`
-- qemu
-  - [https://www.qemu.org/download/](https://www.qemu.org/download/)
+- cargo-make
+  - https://github.com/sagiegurari/cargo-make
+  - `cargo install cargo-make`
+- QEMU
+  - https://www.qemu.org/download/
 
 # Build
 
 ## Debug build
 
 ```bash
-cargo build
+makers build-[arch_name]-dev
 ```
 
 ## Release build
 
 ```bash
-cargo build --release
+makers build-[arch_name]
 ```
 
-The compiled executable is `./target/riscv64gc-unknown-none-elf/[build mode]/copland_os`
+The compiled executable is `./kernel.elf` .
 
 # Run
 
 ```bash
-cargo run # this requires qemu-system-riscv64
+# Debug mode
+makers run-[arch_name]-dev # this requires QEMU
+
+# Release mode
+makers run-[arch_name] # this requires QEMU
 ```
 
 # Debug with gdb
 
 ```bash
-./tools/debug_[board name].sh
+makers debug-[arch_name]
 ```
 
 ```bash
-gdb -x tools/script_[board name].gdb
+rust-gdb -x tools/script_[board_name].gdb
 ```
 
 # Supported boards
 
-## riscv64gc-unknown-none-elf
+## riscv64
 
 - virt (wip)
 
-## aarch64-unknown-none-softfloat
+## aarch64
 
 - raspi3b (wip)

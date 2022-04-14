@@ -1,0 +1,84 @@
+[env]
+ARCH = "default"
+BIN = "kernel.elf"
+BOARD = "default"
+MODE = "debug"
+
+[tasks.build]
+script = '''
+if [ $ARCH = "default" ]; then
+    if [ $MODE = "release" ]; then
+        cargo build --release
+    else
+        cargo build
+    fi
+else
+    if [ $MODE = "release" ]; then
+        cargo build --target $ARCH --release
+    else
+        cargo build --target $ARCH
+    fi
+fi
+
+cp ./target/$ARCH/$MODE/copland_os $BIN
+'''
+[tasks.build-riscv64-dev]
+env = {ARCH = "riscv64gc-unknown-none-elf", MODE = "debug"}
+run_task = "build"
+
+[tasks.build-riscv64]
+env = {ARCH = "riscv64gc-unknown-none-elf", MODE = "release"}
+run_task = "build"
+
+[tasks.build-aarch64-dev]
+env = {ARCH = "aarch64-unknown-none-softfloat", MODE = "debug"}
+run_task = "build"
+
+[tasks.build-aarch64]
+env = {ARCH = "aarch64-unknown-none-softfloat", MODE = "release"}
+run_task = "build"
+
+[tasks.run-riscv64-dev]
+dependencies = ["build-riscv64-dev"]
+script = '''
+qemu-system-riscv64 -s -machine virt -bios none -m 256M -smp 4 -serial stdio -kernel $BIN
+'''
+
+[tasks.run-riscv64]
+dependencies = ["build-riscv64"]
+script = '''
+qemu-system-riscv64 -machine virt -bios none -m 256M -smp 4 -serial stdio -kernel $BIN
+'''
+
+[tasks.run-aarch64-dev]
+dependencies = ["build-aarch64-dev"]
+script = '''
+qemu-system-aarch64 -s -machine raspi3b -m 1G -serial null -serial stdio -kernel $BIN
+'''
+
+[tasks.run-aarch64]
+dependencies = ["build-aarch64"]
+script = '''
+qemu-system-aarch64 -machine raspi3b -m 1G -serial null -serial stdio -kernel $BIN
+'''
+
+[tasks.debug-riscv64]
+dependencies = ["build-riscv64-dev"]
+script = '''
+qemu-system-riscv64 -s -S -machine virt -bios none -m 256M -smp 4 -serial stdio -kernel $BIN
+'''
+
+[tasks.debug-aarch64]
+dependencies = ["build-aarch64-dev"]
+script = '''
+qemu-system-aarch64 -s -S -machine raspi3b -m 1G -serial null -serial stdio -kernel $BIN
+'''
+
+[tasks.clean]
+script = '''
+rm -rf $BIN
+cargo clean
+'''
+
+[config]
+skip_core_tasks = true

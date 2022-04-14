@@ -15,7 +15,7 @@ impl CpuState {
     }
 
     pub fn cpuid(&self) -> CpuId {
-        let mut id: CpuId = 0;
+        let mut id: CpuId;
         unsafe {
             asm!("mrs {}, mpidr_el1", out(reg)id);
         }
