@@ -35,6 +35,7 @@ pub unsafe extern "C" fn main() -> ! {
 #[cfg(target_arch = "aarch64")]
 pub unsafe extern "C" fn main() -> ! {
     use copland_os::arch::aarch64::*;
+
     KERNEL_LOCK.lock();
 
     allocator::init_allocator();
