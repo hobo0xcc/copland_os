@@ -14,7 +14,7 @@
 # Common
 
 - [ ] process management
-- [ ] [giant lock](https://en.wikipedia.org/wiki/Giant_lock)
+- [x] [giant lock](https://en.wikipedia.org/wiki/Giant_lock)
 - [ ] inter-process communication
 - [ ] file system
 - [ ] user application
@@ -29,3 +29,4 @@
   - https://github.com/ghaerr/microwindows
   - wayland?
 - [ ] x86_64 support
+- [ ] wrapping allocator with mutex

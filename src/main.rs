@@ -28,9 +28,10 @@ pub unsafe extern "C" fn main() -> ! {
 
     println!("hart: {}", riscv::STATE.lock().cpuid());
 
-    // paging::VM_MANAGER
-    //     .lock()
-    //     .enable_paging(0, paging::VMMode::Sv39);
+    let root_ptes = vm::VM_MANAGER.lock().map_mem_identically_as_phy();
+    vm::VM_MANAGER.lock().enable_paging(root_ptes);
+
+    println!("Hello, world!");
 
     loop {}
 }

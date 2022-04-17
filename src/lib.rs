@@ -3,6 +3,7 @@
 #![no_main]
 
 extern crate alloc;
+extern crate hashbrown;
 extern crate lazy_static;
 extern crate spin;
 extern crate volatile;
