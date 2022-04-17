@@ -2,6 +2,7 @@
 ARCH = "default"
 BIN = "kernel.elf"
 BOARD = "default"
+CORE = "1"
 MODE = "debug"
 
 [tasks.build]
@@ -41,13 +42,13 @@ run_task = "build"
 [tasks.run-riscv64-dev]
 dependencies = ["build-riscv64-dev"]
 script = '''
-qemu-system-riscv64 -s -machine virt -bios none -m 256M -smp 4 -serial stdio -kernel $BIN
+qemu-system-riscv64 -s -machine virt -bios none -m 256M -smp $CORE -serial stdio -kernel $BIN
 '''
 
 [tasks.run-riscv64]
 dependencies = ["build-riscv64"]
 script = '''
-qemu-system-riscv64 -machine virt -bios none -m 256M -smp 4 -serial stdio -kernel $BIN
+qemu-system-riscv64 -machine virt -bios none -m 256M -smp $CORE -serial stdio -kernel $BIN
 '''
 
 [tasks.run-aarch64-dev]
@@ -65,7 +66,7 @@ qemu-system-aarch64 -machine raspi3b -m 1G -serial null -serial stdio -kernel $B
 [tasks.debug-riscv64]
 dependencies = ["build-riscv64-dev"]
 script = '''
-qemu-system-riscv64 -s -S -machine virt -bios none -m 256M -smp 4 -serial stdio -kernel $BIN
+qemu-system-riscv64 -s -S -machine virt -bios none -m 256M -smp $CORE -serial stdio -kernel $BIN
 '''
 
 [tasks.debug-aarch64]

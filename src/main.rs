@@ -28,6 +28,10 @@ pub unsafe extern "C" fn main() -> ! {
 
     println!("hart: {}", riscv::STATE.lock().cpuid());
 
+    // paging::VM_MANAGER
+    //     .lock()
+    //     .enable_paging(0, paging::VMMode::Sv39);
+
     loop {}
 }
 
