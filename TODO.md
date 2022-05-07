@@ -2,14 +2,14 @@
 
 - [x] println macro
 - [x] memory allocator
-- [ ] paging
+- [x] paging
 - [ ] virtio driver
 
 # Arm
 
 - [ ] interrupt
   - [ ] exception level 1 (corresponds to RISC-V's supervisor mode)
-- [ ] paging
+- [x] paging
 
 # Common
 
@@ -29,4 +29,3 @@
   - https://github.com/ghaerr/microwindows
   - wayland?
 - [ ] x86_64 support
-- [ ] wrapping allocator with mutex
