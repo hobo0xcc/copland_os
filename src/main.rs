@@ -23,13 +23,13 @@ pub unsafe extern "C" fn main() -> ! {
     KERNEL_LOCK.lock();
 
     allocator::init_allocator();
+
     println!("RISC-V");
     println!("PRESENT DAY\n  PRESENT TIME");
 
     println!("hart: {}", riscv::STATE.lock().cpuid());
 
-    let root_ptes = vm::VM_MANAGER.lock().map_mem_identically_as_phy();
-    vm::VM_MANAGER.lock().enable_paging(root_ptes);
+    vm::VM_MANAGER.lock().init();
 
     println!("Hello, world!");
 
@@ -44,10 +44,15 @@ pub unsafe extern "C" fn main() -> ! {
     KERNEL_LOCK.lock();
 
     allocator::init_allocator();
+
     println!("AArch64");
     println!("PRESENT DAY\n  PRESENT TIME");
 
     println!("hart: {}", arm::STATE.lock().cpuid());
+
+    vm::VM_MANAGER.lock().init();
+
+    println!("Hello, world!");
 
     loop {}
 }
@@ -73,7 +78,6 @@ pub unsafe extern "C" fn _entry() -> ! {
 }
 
 #[panic_handler]
-#[cfg(target_arch = "riscv64")]
 fn panic(info: &core::panic::PanicInfo) -> ! {
     print!("Panic: ");
     if let Some(location) = info.location() {
@@ -86,11 +90,5 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
     } else {
         println!("No information available");
     }
-    loop {}
-}
-
-#[panic_handler]
-#[cfg(target_arch = "aarch64")]
-fn panic(_info: &core::panic::PanicInfo) -> ! {
     loop {}
 }

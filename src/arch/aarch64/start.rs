@@ -9,8 +9,13 @@ extern "C" {
 pub unsafe extern "C" fn start() {
     asm!(
         "
-        mov x0, 0
-        msr sctlr_el1, x0
+        mrs x0, midr_el1
+        msr vpidr_el2, x0
+        mrs x0, mpidr_el1
+        msr vmpidr_el2, x0
+        // msr vttbr_el2, xzr
+        msr sctlr_el2, xzr
+        msr sctlr_el1, xzr
         ldr x0, =(1 << 31)
         msr hcr_el2, x0
 

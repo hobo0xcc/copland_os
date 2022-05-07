@@ -1,7 +1,9 @@
 use crate::arch::riscv64::csr::*;
 use alloc::alloc::*;
+use alloc::string::{String, ToString};
 use core::arch::asm;
 use core::mem::size_of;
+use hashbrown::HashMap;
 use lazy_static::lazy_static;
 use spin::Mutex;
 
@@ -90,6 +92,7 @@ impl VMMode {
 }
 
 pub struct VMManager {
+    root_tables: HashMap<String, PageTable>,
     mode: VMMode,
 }
 
@@ -98,11 +101,14 @@ unsafe impl Send for VMManager {}
 
 impl VMManager {
     pub fn new() -> Self {
-        Self { mode: VMMode::Sv39 }
+        Self {
+            root_tables: HashMap::new(),
+            mode: VMMode::Sv39,
+        }
     }
 
-    pub fn map_mem_identically_as_phy(&self) -> PageTable {
-        let mut page_table = self.new_page_table();
+    pub fn identity_mapping(&mut self, name: &str) {
+        let page_table = self.get_root_table_mut(name);
         for i in 0..page_table.entry_length() {
             page_table.update_entry(
                 i,
@@ -116,11 +122,9 @@ impl VMManager {
                 },
             )
         }
-
-        page_table
     }
 
-    pub fn new_page_table(&self) -> PageTable {
+    pub fn create_table(&mut self, name: &str) {
         match self.mode {
             VMMode::Sv39 => {
                 assert_eq!(size_of::<PageTableSv39>(), 4096); // the page table size must be 4096 = 8 * 2^9
@@ -133,7 +137,10 @@ impl VMManager {
 
                 assert_eq!((ptes_pointer as usize) & 0xfff, 0_usize); // is aligned correctly?
 
-                PageTable::Sv39(ptes_pointer as *mut PageTableSv39)
+                self.root_tables.insert(
+                    name.to_string(),
+                    PageTable::Sv39(ptes_pointer as *mut PageTableSv39),
+                );
             }
         }
     }
@@ -142,8 +149,21 @@ impl VMManager {
         self.mode = mode;
     }
 
-    pub fn enable_paging(&self, root_page_table: PageTable) {
-        Csr::Satp.write(self.mode.value() << 60 | (root_page_table.address() >> 12));
+    pub fn get_root_table(&self, name: &str) -> &PageTable {
+        assert!(self.root_tables.contains_key(name));
+        self.root_tables.get(name).unwrap()
+    }
+
+    pub fn get_root_table_mut(&mut self, name: &str) -> &mut PageTable {
+        assert!(self.root_tables.contains_key(name));
+        self.root_tables.get_mut(name).unwrap()
+    }
+
+    pub fn init(&mut self) {
+        self.create_table("kernel");
+        self.identity_mapping("kernel");
+        let root_table = self.get_root_table("kernel");
+        Csr::Satp.write(self.mode.value() << 60 | (root_table.address() >> 12));
         unsafe {
             asm!("sfence.vma zero, zero");
         }
