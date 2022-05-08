@@ -5,6 +5,7 @@
 extern crate alloc;
 extern crate hashbrown;
 extern crate lazy_static;
+extern crate log;
 extern crate spin;
 extern crate volatile;
 
@@ -12,4 +13,5 @@ pub mod allocator;
 pub mod arch;
 pub mod device;
 pub mod kernlock;
+pub mod logger;
 pub mod print;

@@ -10,6 +10,7 @@ use copland_os::kernlock::KernelLock;
 use copland_os::*;
 use core::arch::asm;
 use lazy_static::lazy_static;
+use log::info;
 
 lazy_static! {
     pub static ref KERNEL_LOCK: KernelLock = KernelLock::new();
@@ -23,15 +24,14 @@ pub unsafe extern "C" fn main() -> ! {
     KERNEL_LOCK.lock();
 
     allocator::init_allocator();
+    logger::init_logger();
 
-    println!("RISC-V");
-    println!("PRESENT DAY\n  PRESENT TIME");
-
-    println!("hart: {}", riscv::STATE.lock().cpuid());
+    info!("Arch: RISC-V");
+    info!("Hart: {}", riscv::STATE.lock().cpuid());
 
     vm::VM_MANAGER.lock().init();
 
-    println!("Hello, world!");
+    println!("PRESENT DAY\n  PRESENT TIME");
 
     loop {}
 }
@@ -44,15 +44,14 @@ pub unsafe extern "C" fn main() -> ! {
     KERNEL_LOCK.lock();
 
     allocator::init_allocator();
+    logger::init_logger();
 
-    println!("AArch64");
-    println!("PRESENT DAY\n  PRESENT TIME");
-
-    println!("hart: {}", arm::STATE.lock().cpuid());
+    info!("Arch: AArch64");
+    info!("Hart: {}", arm::STATE.lock().cpuid());
 
     vm::VM_MANAGER.lock().init();
 
-    println!("Hello, world!");
+    println!("PRESENT DAY\n  PRESENT TIME");
 
     loop {}
 }
