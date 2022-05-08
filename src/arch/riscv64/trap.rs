@@ -26,13 +26,13 @@ pub unsafe extern "C" fn kernel_trap() {
 
         loop {}
     } else if scause & 0x8000000000000000 != 0 && scause & 0xff == 9 {
-        let irq = plic::plic_claim();
+        let irq = plic::PLIC_MANAGER.lock().read_claim();
         if irq as usize == plic::UART0_IRQ {
             Uart::new().interrupt();
         } else {
             panic!("Unknown interrupt irq: {}", irq);
         }
 
-        plic::plic_complete(irq);
+        plic::PLIC_MANAGER.lock().send_complete(irq);
     }
 }

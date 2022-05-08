@@ -50,6 +50,9 @@ impl KernelLock {
         #[cfg(target_arch = "riscv64")]
         let cpu_id = crate::arch::riscv64::riscv::STATE.lock().cpuid();
 
+        #[cfg(target_arch = "aarch64")]
+        let cpu_id = crate::arch::aarch64::arm::STATE.lock().cpuid();
+
         // unlock from other cpus is refused.
         unsafe {
             if cpu_id != *self.cpu_id.get() {
