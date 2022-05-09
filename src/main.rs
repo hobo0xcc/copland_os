@@ -48,18 +48,24 @@ pub unsafe extern "C" fn main() -> ! {
 #[no_mangle]
 #[cfg(target_arch = "aarch64")]
 pub unsafe extern "C" fn main() -> ! {
-    use copland_os::arch::aarch64::*;
-
     KERNEL_LOCK.lock();
 
     allocator::init_allocator();
     logger::init_logger();
 
     info!("Arch: AArch64");
-    info!("Hart: {}", arm::STATE.lock().cpuid());
+    info!("Hart: {}", crate::arch::aarch64::arm::STATE.lock().cpuid());
 
-    vm::VM_MANAGER.lock().init();
+    {
+        use copland_os::arch::aarch64::*;
+        vm::VM_MANAGER.lock().init();
+    }
+
     task::TASK_MANAGER.lock().init();
+
+    let id = task::TASK_MANAGER.lock().create_task("test");
+    task::TASK_MANAGER.lock().ready_task(id);
+    task::TASK_MANAGER.lock().schedule();
 
     println!("PRESENT DAY\n  PRESENT TIME");
 

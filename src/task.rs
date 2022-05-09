@@ -108,6 +108,11 @@ impl TaskManager {
         riscv64::task::ARCH_TASK_MANAGER
             .lock()
             .context_switch(current_running, next_running);
+
+        #[cfg(target_arch = "aarch64")]
+        aarch64::task::ARCH_TASK_MANAGER
+            .lock()
+            .context_switch(current_running, next_running);
     }
 
     pub fn ready_task(&mut self, id: TaskId) {
@@ -130,6 +135,11 @@ impl TaskManager {
 
         #[cfg(target_arch = "riscv64")]
         riscv64::task::ARCH_TASK_MANAGER
+            .lock()
+            .create_arch_task(task_id);
+
+        #[cfg(target_arch = "aarch64")]
+        aarch64::task::ARCH_TASK_MANAGER
             .lock()
             .create_arch_task(task_id);
 
