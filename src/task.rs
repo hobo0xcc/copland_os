@@ -5,8 +5,18 @@ use lazy_static::lazy_static;
 use log::info;
 use spin::Mutex;
 
+#[cfg(target_arch = "riscv64")]
+use crate::arch::riscv64;
+
+#[cfg(target_arch = "aarch64")]
+use crate::arch::aarch64;
+
 lazy_static! {
     pub static ref TASK_MANAGER: Mutex<TaskManager> = Mutex::new(TaskManager::new());
+}
+
+pub trait ArchTaskManager {
+    unsafe fn context_switch(&mut self, from: TaskId, to: TaskId);
 }
 
 pub type TaskId = usize;
@@ -63,11 +73,7 @@ impl TaskManager {
     pub fn init(&mut self) {
         info!("Initialize Task Manager");
         self.task_id = 0;
-        self.running = self.next_task_id();
-        assert_eq!(self.running, 0);
-        self.tasks
-            .insert(self.running, Task::new("kernel", self.running));
-        assert!(self.tasks.contains_key(&self.running));
+        self.running = self.create_task("kernel");
         self.tasks
             .get_mut(&self.running)
             .unwrap()
@@ -98,7 +104,10 @@ impl TaskManager {
         // TASK_MANAGER must be unlocked because of the risk of deadlock.
         TASK_MANAGER.force_unlock();
         // Do context switch
-        unimplemented!();
+        #[cfg(target_arch = "riscv64")]
+        riscv64::task::ARCH_TASK_MANAGER
+            .lock()
+            .context_switch(current_running, next_running);
     }
 
     pub fn ready_task(&mut self, id: TaskId) {
@@ -118,6 +127,11 @@ impl TaskManager {
         let task = Task::new(name, task_id);
         self.tasks.insert(task_id, task);
         assert!(self.tasks.contains_key(&task_id));
+
+        #[cfg(target_arch = "riscv64")]
+        riscv64::task::ARCH_TASK_MANAGER
+            .lock()
+            .create_arch_task(task_id);
 
         task_id
     }

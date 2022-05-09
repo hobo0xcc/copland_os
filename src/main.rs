@@ -18,18 +18,27 @@ lazy_static! {
 #[no_mangle]
 #[cfg(target_arch = "riscv64")]
 pub unsafe extern "C" fn main() -> ! {
-    use copland_os::arch::riscv64::*;
-
     KERNEL_LOCK.lock();
 
     allocator::init_allocator();
     logger::init_logger();
 
     info!("Arch: RISC-V");
-    info!("Hart: {}", riscv::STATE.lock().cpuid());
+    info!(
+        "Hart: {}",
+        crate::arch::riscv64::riscv::STATE.lock().cpuid()
+    );
 
-    vm::VM_MANAGER.lock().init();
+    {
+        use copland_os::arch::riscv64::*;
+        vm::VM_MANAGER.lock().init();
+    }
+
     task::TASK_MANAGER.lock().init();
+
+    let id = task::TASK_MANAGER.lock().create_task("test");
+    task::TASK_MANAGER.lock().ready_task(id);
+    task::TASK_MANAGER.lock().schedule();
 
     println!("PRESENT DAY\n  PRESENT TIME");
 
