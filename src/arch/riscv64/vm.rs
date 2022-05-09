@@ -5,6 +5,7 @@ use core::arch::asm;
 use core::mem::size_of;
 use hashbrown::HashMap;
 use lazy_static::lazy_static;
+use log::info;
 use spin::Mutex;
 
 lazy_static! {
@@ -160,6 +161,7 @@ impl VMManager {
     }
 
     pub fn init(&mut self) {
+        info!("Initialize VM Manager");
         self.create_table("kernel");
         self.identity_mapping("kernel");
         let root_table = self.get_root_table("kernel");

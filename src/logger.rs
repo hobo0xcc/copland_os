@@ -13,9 +13,8 @@ impl log::Log for KernelLogger {
     fn log(&self, record: &Record) {
         if self.enabled(record.metadata()) {
             println!(
-                "[{}:{}] {} - {}",
-                record.file().unwrap(),
-                record.line().unwrap(),
+                "[{}] {} - {}",
+                record.target(),
                 record.level(),
                 record.args()
             );

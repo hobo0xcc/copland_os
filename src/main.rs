@@ -30,6 +30,7 @@ pub unsafe extern "C" fn main() -> ! {
     info!("Hart: {}", riscv::STATE.lock().cpuid());
 
     vm::VM_MANAGER.lock().init();
+    task::TASK_MANAGER.lock().init();
 
     println!("PRESENT DAY\n  PRESENT TIME");
 
@@ -50,6 +51,7 @@ pub unsafe extern "C" fn main() -> ! {
     info!("Hart: {}", arm::STATE.lock().cpuid());
 
     vm::VM_MANAGER.lock().init();
+    task::TASK_MANAGER.lock().init();
 
     println!("PRESENT DAY\n  PRESENT TIME");
 
