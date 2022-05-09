@@ -2,8 +2,6 @@ use crate::arch::riscv64::*;
 use lazy_static::lazy_static;
 use spin::Mutex;
 
-pub const UART0_IRQ: usize = 10;
-
 lazy_static! {
     pub static ref PLIC_MANAGER: Mutex<PLICManager> = Mutex::new(PLICManager::new());
 }

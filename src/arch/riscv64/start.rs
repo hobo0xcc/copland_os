@@ -26,17 +26,17 @@ pub unsafe extern "C" fn start() -> ! {
     mstatus &= !Mstatus::MPP.mask();
     mstatus |= 0b01_usize << Mstatus::MPP.index(); // 0b01 -> Supervisor Mode
 
-    mstatus |= 0b1 << Mstatus::SPIE.index(); // SPIE
-    mstatus |= 0b1 << Mstatus::MPIE.index(); // MPIE
-    mstatus |= 0b1 << Mstatus::SIE.index(); // SIE
-    mstatus |= 0b1 << Mstatus::MIE.index(); // MIE
-    mstatus |= 0b01 << Mstatus::FS.index(); // FS
+    mstatus |= 0b1 << Mstatus::SPIE.index();
+    mstatus |= 0b1 << Mstatus::MPIE.index();
+    mstatus |= 0b1 << Mstatus::SIE.index();
+    mstatus |= 0b1 << Mstatus::MIE.index();
+    mstatus |= 0b01 << Mstatus::FS.index();
     Csr::Mstatus.write(mstatus);
 
     let mut sstatus = Csr::Sstatus.read();
-    sstatus |= 0b1 << Sstatus::SPIE.index(); // SPIE
-    sstatus |= 0b1 << Sstatus::SIE.index(); // SIE
-    sstatus |= 0b01 << Sstatus::FS.index(); // FS
+    sstatus |= 0b1 << Sstatus::SPIE.index();
+    sstatus |= 0b1 << Sstatus::SIE.index();
+    sstatus |= 0b01 << Sstatus::FS.index();
     Csr::Sstatus.write(sstatus);
 
     let mepc = main as usize;
