@@ -1,7 +1,6 @@
 #![feature(panic_info_message, start)]
 #![no_std]
 #![no_main]
-#![allow(unused_imports)]
 
 extern crate alloc;
 extern crate copland_os;

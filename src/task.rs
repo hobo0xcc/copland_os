@@ -57,13 +57,16 @@ impl TaskManager {
             .insert(self.running, Task::new("kernel", self.running));
     }
 
-    pub fn schedule(&mut self) {
+    pub unsafe fn schedule(&mut self) {
         if self.ready_queue.len() == 0 {
             return;
         }
         assert!(1 <= self.ready_queue.len());
-        let next_id = self.ready_queue.pop_front().unwrap();
-        let current_id = self.running;
+        let next_running = self.ready_queue.pop_front().unwrap();
+        let current_running = self.running;
+
+        self.ready_queue.push_back(current_running);
+        self.running = next_running;
         // Do context switch
         unimplemented!();
     }
