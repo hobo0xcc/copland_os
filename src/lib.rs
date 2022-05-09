@@ -15,3 +15,4 @@ pub mod device;
 pub mod kernlock;
 pub mod logger;
 pub mod print;
+pub mod task;
