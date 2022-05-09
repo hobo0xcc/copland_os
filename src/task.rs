@@ -11,9 +11,16 @@ lazy_static! {
 
 pub type TaskId = usize;
 
+pub enum TaskState {
+    Running,
+    Ready,
+    Stop,
+}
+
 pub struct Task {
     id: TaskId,
     name: String,
+    state: TaskState,
 }
 
 impl Task {
@@ -21,7 +28,12 @@ impl Task {
         Self {
             id,
             name: name.to_string(),
+            state: TaskState::Stop,
         }
+    }
+
+    pub fn update_state(&mut self, state: TaskState) {
+        self.state = state;
     }
 }
 
@@ -55,6 +67,11 @@ impl TaskManager {
         assert_eq!(self.running, 0);
         self.tasks
             .insert(self.running, Task::new("kernel", self.running));
+        assert!(self.tasks.contains_key(&self.running));
+        self.tasks
+            .get_mut(&self.running)
+            .unwrap()
+            .update_state(TaskState::Running);
     }
 
     pub unsafe fn schedule(&mut self) {
@@ -64,11 +81,36 @@ impl TaskManager {
         assert!(1 <= self.ready_queue.len());
         let next_running = self.ready_queue.pop_front().unwrap();
         let current_running = self.running;
+        assert!(self.tasks.contains_key(&next_running));
+        assert!(self.tasks.contains_key(&current_running));
+
+        self.tasks
+            .get_mut(&next_running)
+            .unwrap()
+            .update_state(TaskState::Running);
+        self.tasks
+            .get_mut(&current_running)
+            .unwrap()
+            .update_state(TaskState::Ready);
 
         self.ready_queue.push_back(current_running);
         self.running = next_running;
+        // TASK_MANAGER must be unlocked because of the risk of deadlock.
+        TASK_MANAGER.force_unlock();
         // Do context switch
         unimplemented!();
+    }
+
+    pub fn ready_task(&mut self, id: TaskId) {
+        if !self.tasks.contains_key(&id) {
+            panic!("Unknown Task ID: {}", id);
+        }
+        assert!(self.tasks.contains_key(&id));
+        self.tasks
+            .get_mut(&id)
+            .unwrap()
+            .update_state(TaskState::Ready);
+        self.ready_queue.push_back(id);
     }
 
     pub fn create_task(&mut self, name: &str) -> TaskId {
