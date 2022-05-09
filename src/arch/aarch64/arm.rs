@@ -20,8 +20,6 @@ impl CpuState {
             asm!("mrs {}, mpidr_el1", out(reg)id);
         }
 
-        id = id & 0b11;
-
-        id
+        id & 0b11
     }
 }
