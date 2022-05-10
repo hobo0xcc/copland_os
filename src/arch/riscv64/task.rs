@@ -1,6 +1,5 @@
 use crate::task::{ArchTaskManager, TaskId};
 use core::arch::global_asm;
-use core::default::Default;
 use hashbrown::HashMap;
 use lazy_static::lazy_static;
 use spin::Mutex;
@@ -60,6 +59,7 @@ impl ArchTaskManager for TaskManager {
 }
 
 #[derive(Copy, Clone, Debug)]
+#[allow(dead_code)]
 #[repr(packed)]
 pub struct Context {
     ra: usize,

@@ -10,7 +10,7 @@ SECTIONS {
 
     .text : {
         PROVIDE(_text_start = .);
-        *(.text.boot)
+        *(.entry)
         *(.text .text.*)
         . = ALIGN(0x1000);
         PROVIDE(_text_end = .);

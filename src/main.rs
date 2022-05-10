@@ -89,13 +89,12 @@ pub unsafe extern "C" fn boot() -> ! {
 
 #[no_mangle]
 #[start]
-#[link_section = ".text.boot"]
+#[link_section = ".entry"]
 pub unsafe extern "C" fn _entry() -> ! {
     #[cfg(target_arch = "riscv64")]
-    asm!("j boot");
+    asm!("j boot", options(noreturn));
     #[cfg(target_arch = "aarch64")]
-    asm!("b boot");
-    loop {}
+    asm!("b boot", options(noreturn));
 }
 
 #[panic_handler]
