@@ -15,6 +15,12 @@ lazy_static! {
     pub static ref KERNEL_LOCK: KernelLock = KernelLock::new();
 }
 
+pub unsafe extern "C" fn test() {
+    println!("Hello from test()");
+    task::TASK_MANAGER.lock().schedule();
+    loop {}
+}
+
 #[no_mangle]
 #[cfg(target_arch = "riscv64")]
 pub unsafe extern "C" fn main() -> ! {
@@ -36,7 +42,7 @@ pub unsafe extern "C" fn main() -> ! {
 
     task::TASK_MANAGER.lock().init();
 
-    let id = task::TASK_MANAGER.lock().create_task("test");
+    let id = task::TASK_MANAGER.lock().create_task("test", test as usize);
     task::TASK_MANAGER.lock().ready_task(id);
     task::TASK_MANAGER.lock().schedule();
 
@@ -63,7 +69,7 @@ pub unsafe extern "C" fn main() -> ! {
 
     task::TASK_MANAGER.lock().init();
 
-    let id = task::TASK_MANAGER.lock().create_task("test");
+    let id = task::TASK_MANAGER.lock().create_task("test", test as usize);
     task::TASK_MANAGER.lock().ready_task(id);
     task::TASK_MANAGER.lock().schedule();
 

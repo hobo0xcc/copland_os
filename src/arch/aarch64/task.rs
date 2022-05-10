@@ -17,15 +17,23 @@ impl TaskManager {
             tasks: HashMap::new(),
         }
     }
-
-    pub fn create_arch_task(&mut self, id: TaskId) {
-        self.tasks.insert(id, Task::new(id));
-    }
 }
 
 impl ArchTaskManager for TaskManager {
     unsafe fn context_switch(&mut self, from: TaskId, to: TaskId) {
         ARCH_TASK_MANAGER.force_unlock();
+        unimplemented!()
+    }
+
+    fn create_arch_task(&mut self, id: TaskId) {
+        self.tasks.insert(id, Task::new(id));
+    }
+
+    fn init_stack(&mut self, id: TaskId, stack_pointer: usize) {
+        unimplemented!()
+    }
+
+    fn init_start(&mut self, id: TaskId, start_address: usize) {
         unimplemented!()
     }
 }
