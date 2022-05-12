@@ -46,7 +46,7 @@ makers debug-[arch_name]
 ```
 
 ```bash
-rust-gdb -x tools/script_[board_name].gdb
+rust-gdb -x tools/[board_name].gdb
 ```
 
 # Supported boards
