@@ -36,7 +36,6 @@ impl ArchTaskManager for TaskManager {
         let context_to = &task_to.context as *const Context as usize;
         ARCH_TASK_MANAGER.force_unlock();
         switch(context_from, context_to);
-        // unimplemented!()
     }
 
     fn create_arch_task(&mut self, id: TaskId) {
