@@ -5,7 +5,7 @@
 extern crate alloc;
 extern crate copland_os;
 
-use copland_os::kernlock::KernelLock;
+use copland_os::lock::KernelLock;
 use copland_os::*;
 use core::arch::asm;
 use lazy_static::lazy_static;
