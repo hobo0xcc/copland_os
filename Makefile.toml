@@ -3,7 +3,13 @@ ARCH = "default"
 BIN = "kernel.elf"
 BOARD = "default"
 CORE = "1"
+DISK = "disk.img"
 MODE = "debug"
+
+[tasks.make-disk]
+script = '''
+touch $DISK
+'''
 
 [tasks.build]
 script = '''
@@ -40,15 +46,19 @@ env = {ARCH = "aarch64-unknown-none-softfloat", MODE = "release"}
 run_task = "build"
 
 [tasks.run-riscv64-dev]
-dependencies = ["build-riscv64-dev"]
+dependencies = ["build-riscv64-dev", "make-disk"]
 script = '''
-qemu-system-riscv64 -s -machine virt -bios none -m 256M -smp $CORE -serial stdio -kernel $BIN
+qemu-system-riscv64 -s -machine virt -bios none -m 256M -smp $CORE -serial stdio -kernel $BIN \
+    -drive file=$DISK,if=none,format=raw,id=x0 \
+    -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
 '''
 
 [tasks.run-riscv64]
-dependencies = ["build-riscv64"]
+dependencies = ["build-riscv64", "make-disk"]
 script = '''
-qemu-system-riscv64 -machine virt -bios none -m 256M -smp $CORE -serial stdio -kernel $BIN
+qemu-system-riscv64 -machine virt -bios none -m 256M -smp $CORE -serial stdio -kernel $BIN \
+    -drive file=$DISK,if=none,format=raw,id=x0 \\
+    -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
 '''
 
 [tasks.run-aarch64-dev]
@@ -77,7 +87,7 @@ qemu-system-aarch64 -s -S -machine raspi3b -m 1G -serial null -serial stdio -ker
 
 [tasks.clean]
 script = '''
-rm -rf $BIN
+rm -rf $BIN $DISK
 cargo clean
 '''
 

@@ -37,7 +37,11 @@ pub unsafe extern "C" fn main() -> ! {
 
     {
         use copland_os::arch::riscv64::*;
+        use copland_os::device::common::virtio;
         vm::VM_MANAGER.lock().init();
+        virtio::block::VIRTIO_BLOCK
+            .lock()
+            .init(address::_virtio_start as usize);
     }
 
     task::TASK_MANAGER.lock().init();
