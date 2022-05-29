@@ -29,3 +29,15 @@ pub struct VirtIORegister {
     pub _reserved_7: WriteOnly<u64>,
     pub status: ReadWrite<u32>,
 }
+
+// https://docs.oasis-open.org/virtio/virtio/v1.1/csprd01/virtio-v1.1-csprd01.html#x1-100001
+#[allow(non_camel_case_types)]
+#[repr(u32)]
+pub enum VirtIODeviceStatus {
+    ACKNOWLEDGE = 1,
+    DRIVER = 2,
+    FAILED = 128,
+    FEATURES_OK = 8,
+    DRIVER_OK = 4,
+    DEVICE_NEEDS_RESET = 64,
+}
