@@ -1,10 +1,10 @@
+use crate::lock::Mutex;
 use alloc::alloc::{alloc_zeroed, Layout};
 use alloc::collections::VecDeque;
 use alloc::string::{String, ToString};
 use hashbrown::HashMap;
 use lazy_static::lazy_static;
 use log::info;
-use spin::Mutex;
 
 #[cfg(target_arch = "riscv64")]
 use crate::arch::riscv64;
@@ -110,7 +110,7 @@ impl TaskManager {
         self.ready_queue.push_back(current_running);
         self.running = next_running;
         // TASK_MANAGER must be unlocked because of the risk of deadlock.
-        TASK_MANAGER.force_unlock();
+        TASK_MANAGER.unlock();
         // Do context switch
         #[cfg(target_arch = "riscv64")]
         riscv64::task::ARCH_TASK_MANAGER

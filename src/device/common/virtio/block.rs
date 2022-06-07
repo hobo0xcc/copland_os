@@ -2,11 +2,18 @@
 
 use super::header::*;
 use super::queue::*;
+use crate::lock::Mutex;
+use crate::KERNEL_LOCK;
 use alloc::alloc::{alloc_zeroed, Layout};
+use alloc::vec::Vec;
 use core::mem;
+use core::sync::atomic::{fence, Ordering};
 use lazy_static::lazy_static;
 use log::info;
-use spin::Mutex;
+
+// https://github.com/mit-pdos/xv6-riscv/blob/riscv/kernel/virtio_disk.c
+
+pub const BLOCK_SIZE: usize = 512;
 
 lazy_static! {
     pub static ref VIRTIO_BLOCK: Mutex<VirtIOBlock<'static>> = Mutex::new(VirtIOBlock::new());
@@ -47,10 +54,17 @@ pub struct VirtIOBlock<'q> {
     free: [bool; DESC_NUM],
     used_idx: u16,
     requests: [VirtIOBlockReq; DESC_NUM],
+    status: [u8; DESC_NUM],
+    complete: [bool; DESC_NUM],
 }
 
 unsafe impl Send for VirtIOBlock<'_> {}
 unsafe impl Sync for VirtIOBlock<'_> {}
+
+pub enum BlockOpType {
+    Write,
+    Read,
+}
 
 impl VirtIOBlock<'_> {
     pub fn new() -> Self {
@@ -59,6 +73,7 @@ impl VirtIOBlock<'_> {
 
     pub unsafe fn init(&mut self, addr: usize) {
         info!("VirtIO init: Start");
+        assert_eq!(core::mem::size_of::<VirtIORegister>(), 0x74);
         self.header = (addr as *mut VirtIORegister).as_mut().unwrap();
         if self.header.magic_value.read() != 0x74726976
             || self.header.version.read() != 1
@@ -112,13 +127,12 @@ impl VirtIOBlock<'_> {
         self.header.queue_num.write(DESC_NUM as u32);
 
         // Allocate queue pages
-        let mut pages = {
-            let mut layout =
+        self.pages = {
+            let layout =
                 Layout::from_size_align(crate::arch::PAGE_SIZE * 2, crate::arch::PAGE_SIZE)
                     .unwrap();
             alloc_zeroed(layout)
         };
-        self.pages = pages;
 
         self.header
             .queue_pfn
@@ -139,5 +153,108 @@ impl VirtIOBlock<'_> {
         }
 
         info!("VirtIO init: Succeeded");
+    }
+
+    fn alloc_desc(&mut self, num: usize) -> Vec<u16> {
+        let mut result = Vec::new();
+        for i in 0..DESC_NUM {
+            if self.free[i] {
+                self.free[i] = false;
+                result.push(i as u16);
+                if result.len() == num {
+                    break;
+                }
+            }
+        }
+
+        if result.len() != num {
+            panic!("VirtIO Descriptor allocaiton failed");
+        }
+
+        result
+    }
+
+    fn free_desc(&mut self, index: u16) {
+        self.free[index as usize] = true;
+        let chained =
+            (self.desc[index as usize].flags & VirtQueueDescFlag::VIRTQ_DESC_F_NEXT as u16) != 0;
+        if chained {
+            self.free_desc(self.desc[index as usize].next);
+        }
+    }
+
+    pub fn block_op(&mut self, buf: *mut u8, sector: u64, op: BlockOpType) {
+        let indexes = self.alloc_desc(3);
+        assert!(indexes.iter().all(|i| *i < DESC_NUM as u16));
+        let mut request = self.requests.get_mut(indexes[0] as usize).unwrap();
+        match op {
+            BlockOpType::Read => request.typ = VirtIOBlockReqType::VIRTIO_BLK_T_IN as u32,
+            BlockOpType::Write => request.typ = VirtIOBlockReqType::VIRTIO_BLK_T_OUT as u32,
+        }
+        request.reserved = 0;
+        request.sector = sector;
+
+        self.desc[indexes[0] as usize] = VirtQueueDesc {
+            addr: request as *mut VirtIOBlockReq as u64,
+            len: mem::size_of::<VirtIOBlockReq>() as u32,
+            flags: VirtQueueDescFlag::VIRTQ_DESC_F_NEXT as u16,
+            next: indexes[1],
+        };
+
+        self.desc[indexes[1] as usize] = VirtQueueDesc {
+            addr: buf as u64,
+            len: BLOCK_SIZE as u32,
+            flags: {
+                let mut flags = match op {
+                    BlockOpType::Read => VirtQueueDescFlag::VIRTQ_DESC_F_WRITE as u16,
+                    BlockOpType::Write => 0,
+                };
+                flags |= VirtQueueDescFlag::VIRTQ_DESC_F_NEXT as u16;
+                flags
+            },
+            next: indexes[2],
+        };
+
+        self.status[indexes[0] as usize] = 0xff;
+        self.desc[indexes[2] as usize] = VirtQueueDesc {
+            addr: (&self.status[indexes[0] as usize]) as *const u8 as u64,
+            len: 1,
+            flags: VirtQueueDescFlag::VIRTQ_DESC_F_WRITE as u16,
+            next: 0,
+        };
+
+        self.complete[indexes[0] as usize] = false;
+        self.avail.ring[self.avail.idx as usize % DESC_NUM] = indexes[0];
+
+        fence(Ordering::SeqCst);
+        self.avail.idx += 1;
+        fence(Ordering::SeqCst);
+
+        self.header.queue_notify.write(0);
+        while !self.complete[indexes[0] as usize] {
+            unsafe {
+                KERNEL_LOCK.wait_intr();
+            }
+        }
+
+        self.free_desc(indexes[0]);
+    }
+
+    pub fn interrupt(&mut self) {
+        self.header
+            .interrupt_ack
+            .write(self.header.interrupt_status.read() & 0x3);
+        fence(Ordering::SeqCst);
+
+        while self.used_idx != self.used.idx {
+            fence(Ordering::SeqCst);
+            let id = self.used.ring[self.used_idx as usize % DESC_NUM].id as usize;
+            if self.status[id] != 0 {
+                panic!("VirtIO status");
+            }
+
+            self.complete[id] = true;
+            self.used_idx += 1;
+        }
     }
 }

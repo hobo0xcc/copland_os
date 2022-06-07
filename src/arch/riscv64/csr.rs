@@ -52,6 +52,8 @@ field_info!(Sie);
 #[repr(usize)]
 #[derive(Copy, Clone)]
 pub enum Sie {
+    SSIE = 0b1 << 1,
+    STIE = 0b1 << 5,
     SEIE = 0b1 << 9,
 }
 

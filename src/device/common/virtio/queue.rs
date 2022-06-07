@@ -1,30 +1,38 @@
 pub const DESC_NUM: usize = 8;
 
+#[allow(non_camel_case_types)]
+#[repr(u16)]
+pub enum VirtQueueDescFlag {
+    VIRTQ_DESC_F_NEXT = 1,
+    VIRTQ_DESC_F_WRITE = 2,
+    VIRTQ_DESC_F_INDIRECT = 4,
+}
+
 #[repr(C)]
 pub struct VirtQueueDesc {
-    addr: u64,
-    len: u32,
-    flags: u16,
-    nex: u16,
+    pub addr: u64,
+    pub len: u32,
+    pub flags: u16,
+    pub next: u16,
 }
 
 #[repr(C)]
 pub struct VirtQueueAvail {
-    flags: u16,
-    idx: u16,
-    ring: [u16; DESC_NUM],
-    unused: u16,
+    pub flags: u16,
+    pub idx: u16,
+    pub ring: [u16; DESC_NUM],
+    pub unused: u16,
 }
 
 #[repr(C)]
 pub struct VirtQueueUsedElem {
-    id: u32,
-    len: u32,
+    pub id: u32,
+    pub len: u32,
 }
 
 #[repr(C)]
 pub struct VirtQueueUsed {
-    flags: u16,
-    idx: u16,
-    ring: [VirtQueueUsedElem; DESC_NUM],
+    pub flags: u16,
+    pub idx: u16,
+    pub ring: [VirtQueueUsedElem; DESC_NUM],
 }

@@ -74,9 +74,11 @@ qemu-system-aarch64 -machine raspi3b -m 1G -serial null -serial stdio -kernel $B
 '''
 
 [tasks.debug-riscv64]
-dependencies = ["build-riscv64-dev"]
+dependencies = ["build-riscv64-dev", "make-disk"]
 script = '''
-qemu-system-riscv64 -s -S -machine virt -bios none -m 256M -smp $CORE -serial stdio -kernel $BIN
+qemu-system-riscv64 -s -S -machine virt -bios none -m 256M -smp $CORE -serial stdio -kernel $BIN \
+    -drive file=$DISK,if=none,format=raw,id=x0 \
+    -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
 '''
 
 [tasks.debug-aarch64]

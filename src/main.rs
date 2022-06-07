@@ -5,20 +5,41 @@
 extern crate alloc;
 extern crate copland_os;
 
-use copland_os::lock::KernelLock;
+use alloc::alloc::{alloc_zeroed, Layout};
 use copland_os::*;
 use core::arch::asm;
-use lazy_static::lazy_static;
 use log::info;
 
-lazy_static! {
-    pub static ref KERNEL_LOCK: KernelLock = KernelLock::new();
+#[cfg(target_arch = "riscv64")]
+pub unsafe extern "C" fn init() {
+    use copland_os::arch::riscv64;
+    use copland_os::device::common::virtio;
+
+    info!("init");
+
+    riscv64::plic::PLIC_MANAGER
+        .lock()
+        .init_irq(riscv64::plic::PlicIRQ::VirtIO0);
+    virtio::block::VIRTIO_BLOCK
+        .lock()
+        .init(riscv64::address::_virtio_start as usize);
+
+    let buf = alloc_zeroed(Layout::from_size_align(512, 512).unwrap());
+    virtio::block::VIRTIO_BLOCK
+        .lock()
+        .block_op(buf, 0, virtio::block::BlockOpType::Read);
+
+    loop {
+        task::TASK_MANAGER.lock().schedule();
+    }
 }
 
-pub unsafe extern "C" fn test() {
-    println!("Hello from test()");
-    task::TASK_MANAGER.lock().schedule();
-    loop {}
+#[cfg(target_arch = "aarch64")]
+pub unsafe extern "C" fn init() {
+    info!("init");
+    loop {
+        task::TASK_MANAGER.lock().schedule();
+    }
 }
 
 #[no_mangle]
@@ -29,6 +50,8 @@ pub unsafe extern "C" fn main() -> ! {
     allocator::init_allocator();
     logger::init_logger();
 
+    println!("PRESENT DAY\n  PRESENT TIME");
+
     info!("Arch: RISC-V");
     info!(
         "Hart: {}",
@@ -37,20 +60,14 @@ pub unsafe extern "C" fn main() -> ! {
 
     {
         use copland_os::arch::riscv64::*;
-        use copland_os::device::common::virtio;
         vm::VM_MANAGER.lock().init();
-        virtio::block::VIRTIO_BLOCK
-            .lock()
-            .init(address::_virtio_start as usize);
     }
 
     task::TASK_MANAGER.lock().init();
 
-    let id = task::TASK_MANAGER.lock().create_task("test", test as usize);
+    let id = task::TASK_MANAGER.lock().create_task("init", init as usize);
     task::TASK_MANAGER.lock().ready_task(id);
     task::TASK_MANAGER.lock().schedule();
-
-    println!("PRESENT DAY\n  PRESENT TIME");
 
     loop {}
 }
@@ -63,6 +80,8 @@ pub unsafe extern "C" fn main() -> ! {
     allocator::init_allocator();
     logger::init_logger();
 
+    println!("PRESENT DAY\n  PRESENT TIME");
+
     info!("Arch: AArch64");
     info!("Hart: {}", crate::arch::aarch64::arm::STATE.lock().cpuid());
 
@@ -73,11 +92,9 @@ pub unsafe extern "C" fn main() -> ! {
 
     task::TASK_MANAGER.lock().init();
 
-    let id = task::TASK_MANAGER.lock().create_task("test", test as usize);
+    let id = task::TASK_MANAGER.lock().create_task("init", init as usize);
     task::TASK_MANAGER.lock().ready_task(id);
     task::TASK_MANAGER.lock().schedule();
-
-    println!("PRESENT DAY\n  PRESENT TIME");
 
     loop {}
 }

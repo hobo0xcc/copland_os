@@ -12,6 +12,7 @@ lazy_static! {
 #[derive(Copy, Clone, Debug)]
 #[repr(usize)]
 pub enum PlicIRQ {
+    VirtIO0 = 1,
     Uart0 = 10,
 }
 

@@ -2,10 +2,10 @@
 #![allow(dead_code)]
 
 use crate::arch::aarch64::address::*;
+use crate::lock::Mutex;
 use core::arch::asm;
 use core::fmt::{Error, Write};
 use lazy_static::lazy_static;
-use spin::Mutex;
 
 lazy_static! {
     pub static ref UART: Mutex<MiniUart> = unsafe {

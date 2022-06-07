@@ -1,9 +1,9 @@
 #![allow(dead_code)]
 
 use crate::arch::riscv64::address;
+use crate::lock::Mutex;
 use core::fmt::{Error, Write};
 use lazy_static::lazy_static;
-use spin::Mutex;
 use volatile::Volatile;
 
 lazy_static! {
