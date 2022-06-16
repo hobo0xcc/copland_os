@@ -1,11 +1,8 @@
 use crate::arch::CpuId;
-use crate::lock::DummyMutex;
+use crate::lazy::Lazy;
 use core::arch::asm;
-use lazy_static::lazy_static;
 
-lazy_static! {
-    pub static ref STATE: DummyMutex<CpuState> = DummyMutex::new(CpuState::new());
-}
+pub static mut STATE: Lazy<CpuState> = Lazy::new(|| CpuState::new());
 
 pub struct CpuState {}
 

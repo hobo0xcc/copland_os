@@ -1,16 +1,13 @@
 use crate::arch::riscv64::csr::*;
+use crate::lazy::Lazy;
 use alloc::alloc::*;
 use alloc::string::{String, ToString};
 use core::arch::asm;
 use core::mem::size_of;
 use hashbrown::HashMap;
-use lazy_static::lazy_static;
 use log::info;
-use spin::Mutex;
 
-lazy_static! {
-    pub static ref VM_MANAGER: Mutex<VMManager> = Mutex::new(VMManager::new());
-}
+pub static mut VM_MANAGER: Lazy<VMManager> = Lazy::new(|| VMManager::new());
 
 #[repr(C)]
 pub struct EntrySv39(usize);

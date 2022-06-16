@@ -1,10 +1,7 @@
 use crate::arch::riscv64::*;
-use lazy_static::lazy_static;
-use spin::Mutex;
+use crate::lazy::Lazy;
 
-lazy_static! {
-    pub static ref PLIC_MANAGER: Mutex<PLICManager> = Mutex::new(PLICManager::new());
-}
+pub static mut PLIC_MANAGER: Lazy<PLICManager> = Lazy::new(|| PLICManager::new());
 
 // https://github.com/riscv/riscv-plic-spec/blob/master/riscv-plic.adoc#memory-map
 // https://github.com/mit-pdos/xv6-riscv/blob/riscv/kernel/plic.c
@@ -56,19 +53,19 @@ impl PLICManager {
     }
 
     pub fn init_irq(&mut self, source: PlicIRQ) {
-        let hart = riscv::STATE.lock().cpuid();
+        let hart = unsafe { riscv::STATE.cpuid() };
         self.update_priority(source as usize, 1);
         self.enable(hart, source);
         self.update_threshold(hart, 0);
     }
 
     pub fn read_claim(&self) -> u32 {
-        let hart = riscv::STATE.lock().cpuid();
+        let hart = unsafe { riscv::STATE.cpuid() };
         unsafe { self.claim_address(hart).read_volatile() }
     }
 
     pub unsafe fn send_complete(&self, irq: u32) {
-        let hart = riscv::STATE.lock().cpuid();
+        let hart = riscv::STATE.cpuid();
         self.claim_address(hart).write_volatile(irq);
     }
 }

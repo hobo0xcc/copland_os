@@ -2,18 +2,15 @@
 #![allow(dead_code)]
 
 use crate::arch::aarch64::address::*;
-use crate::lock::Mutex;
+use crate::lazy::Lazy;
 use core::arch::asm;
 use core::fmt::{Error, Write};
-use lazy_static::lazy_static;
 
-lazy_static! {
-    pub static ref UART: Mutex<MiniUart> = unsafe {
-        let uart = MiniUart::new();
-        uart.init();
-        Mutex::new(uart)
-    };
-}
+pub static mut UART: Lazy<MiniUart> = Lazy::new(|| unsafe {
+    let uart = MiniUart::new();
+    uart.init();
+    uart
+});
 
 // https://github.com/bztsrc/raspi3-tutorial/blob/master/03_uart1/uart.c
 

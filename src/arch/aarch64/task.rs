@@ -1,12 +1,9 @@
+use crate::lazy::Lazy;
 use crate::task::{ArchTaskManager, TaskId};
 use core::arch::global_asm;
 use hashbrown::HashMap;
-use lazy_static::lazy_static;
-use spin::Mutex;
 
-lazy_static! {
-    pub static ref ARCH_TASK_MANAGER: Mutex<TaskManager> = Mutex::new(TaskManager::new());
-}
+pub static mut ARCH_TASK_MANAGER: Lazy<TaskManager> = Lazy::new(|| TaskManager::new());
 
 global_asm!(include_str!("switch.S"));
 
@@ -34,7 +31,6 @@ impl ArchTaskManager for TaskManager {
         let task_to = self.tasks.get(&to).unwrap();
         let context_from = &task_from.context as *const Context as usize;
         let context_to = &task_to.context as *const Context as usize;
-        ARCH_TASK_MANAGER.force_unlock();
         switch(context_from, context_to);
     }
 

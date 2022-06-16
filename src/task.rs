@@ -1,9 +1,8 @@
-use crate::lock::Mutex;
+use crate::lazy::Lazy;
 use alloc::alloc::{alloc_zeroed, Layout};
 use alloc::collections::VecDeque;
 use alloc::string::{String, ToString};
 use hashbrown::HashMap;
-use lazy_static::lazy_static;
 use log::info;
 
 #[cfg(target_arch = "riscv64")]
@@ -14,9 +13,7 @@ use crate::arch::aarch64;
 
 pub const KERNEL_STACK_SIZE: usize = 4096;
 
-lazy_static! {
-    pub static ref TASK_MANAGER: Mutex<TaskManager> = Mutex::new(TaskManager::new());
-}
+pub static mut TASK_MANAGER: Lazy<TaskManager> = Lazy::new(|| TaskManager::new());
 
 pub trait ArchTaskManager {
     unsafe fn context_switch(&mut self, from: TaskId, to: TaskId);
@@ -109,18 +106,12 @@ impl TaskManager {
 
         self.ready_queue.push_back(current_running);
         self.running = next_running;
-        // TASK_MANAGER must be unlocked because of the risk of deadlock.
-        TASK_MANAGER.unlock();
         // Do context switch
         #[cfg(target_arch = "riscv64")]
-        riscv64::task::ARCH_TASK_MANAGER
-            .lock()
-            .context_switch(current_running, next_running);
+        riscv64::task::ARCH_TASK_MANAGER.context_switch(current_running, next_running);
 
         #[cfg(target_arch = "aarch64")]
-        aarch64::task::ARCH_TASK_MANAGER
-            .lock()
-            .context_switch(current_running, next_running);
+        aarch64::task::ARCH_TASK_MANAGER.context_switch(current_running, next_running);
     }
 
     pub fn ready_task(&mut self, id: TaskId) {
@@ -146,15 +137,17 @@ impl TaskManager {
         self.tasks.insert(task_id, task);
         assert!(self.tasks.contains_key(&task_id));
 
-        #[cfg(target_arch = "riscv64")]
-        let mut arch_task_manager = riscv64::task::ARCH_TASK_MANAGER.lock();
+        unsafe {
+            #[cfg(target_arch = "riscv64")]
+            let arch_task_manager = &mut riscv64::task::ARCH_TASK_MANAGER;
 
-        #[cfg(target_arch = "aarch64")]
-        let mut arch_task_manager = aarch64::task::ARCH_TASK_MANAGER.lock();
+            #[cfg(target_arch = "aarch64")]
+            let arch_task_manager = &mut aarch64::task::ARCH_TASK_MANAGER;
 
-        arch_task_manager.create_arch_task(task_id);
-        arch_task_manager.init_stack(task_id, kernel_stack as usize + KERNEL_STACK_SIZE);
-        arch_task_manager.init_start(task_id, func);
+            arch_task_manager.create_arch_task(task_id);
+            arch_task_manager.init_stack(task_id, kernel_stack as usize + KERNEL_STACK_SIZE);
+            arch_task_manager.init_start(task_id, func);
+        }
 
         task_id
     }

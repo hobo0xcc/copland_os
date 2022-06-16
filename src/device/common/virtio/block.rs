@@ -2,22 +2,19 @@
 
 use super::header::*;
 use super::queue::*;
-use crate::lock::Mutex;
+use crate::lazy::Lazy;
 use crate::KERNEL_LOCK;
 use alloc::alloc::{alloc_zeroed, Layout};
 use alloc::vec::Vec;
 use core::mem;
 use core::sync::atomic::{fence, Ordering};
-use lazy_static::lazy_static;
 use log::info;
 
 // https://github.com/mit-pdos/xv6-riscv/blob/riscv/kernel/virtio_disk.c
 
 pub const BLOCK_SIZE: usize = 512;
 
-lazy_static! {
-    pub static ref VIRTIO_BLOCK: Mutex<VirtIOBlock<'static>> = Mutex::new(VirtIOBlock::new());
-}
+pub static mut VIRTIO_BLOCK: Lazy<VirtIOBlock<'static>> = Lazy::new(|| VirtIOBlock::new());
 
 #[allow(non_camel_case_types)]
 #[repr(u32)]

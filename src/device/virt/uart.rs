@@ -1,18 +1,15 @@
 #![allow(dead_code)]
 
 use crate::arch::riscv64::address;
-use crate::lock::Mutex;
+use crate::lazy::Lazy;
 use core::fmt::{Error, Write};
-use lazy_static::lazy_static;
 use volatile::Volatile;
 
-lazy_static! {
-    pub static ref UART: Mutex<Uart> = unsafe {
-        let mut uart = Uart::new();
-        uart.init();
-        Mutex::new(uart)
-    };
-}
+pub static mut UART: Lazy<Uart> = Lazy::new(|| unsafe {
+    let mut uart = Uart::new();
+    uart.init();
+    uart
+});
 
 // https://en.wikibooks.org/wiki/Serial_Programming/8250_UART_Programming#UART_Registers
 

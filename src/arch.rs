@@ -10,26 +10,28 @@ pub const PAGE_SHIFT: usize = 12;
 
 pub fn cpu_id() -> CpuId {
     #[cfg(target_arch = "riscv64")]
-    return riscv64::riscv::STATE.lock().cpuid();
+    return unsafe { riscv64::riscv::STATE.cpuid() };
     #[cfg(target_arch = "aarch64")]
-    return aarch64::arm::STATE.lock().cpuid();
+    return unsafe { aarch64::arm::STATE.cpuid() };
 }
 
 pub fn interrupt_push() {
     #[cfg(target_arch = "riscv64")]
-    riscv64::riscv::STATE.lock().interrupt_push();
+    unsafe {
+        riscv64::riscv::STATE.interrupt_push();
+    }
 }
 
 pub fn interrupt_pop() {
     #[cfg(target_arch = "riscv64")]
-    riscv64::riscv::STATE.lock().interrupt_pop();
+    unsafe {
+        riscv64::riscv::STATE.interrupt_pop();
+    }
 }
 
 pub fn is_interrupt_on() -> bool {
     #[cfg(target_arch = "riscv64")]
-    if cfg!(target_arch = "riscv64") {
-        riscv64::riscv::STATE.lock().is_interrupt_on()
-    } else {
-        false
-    }
+    return unsafe { riscv64::riscv::STATE.is_interrupt_on() };
+    #[cfg(target_arch = "aarch64")]
+    false
 }

@@ -1,16 +1,13 @@
+use crate::lazy::Lazy;
 use alloc::alloc::alloc_zeroed;
 use alloc::string::{String, ToString};
 use core::alloc::Layout;
 use core::arch::asm;
 use core::mem::size_of;
 use hashbrown::HashMap;
-use lazy_static::lazy_static;
 use log::info;
-use spin::Mutex;
 
-lazy_static! {
-    pub static ref VM_MANAGER: Mutex<VMManager<'static>> = Mutex::new(VMManager::new());
-}
+pub static mut VM_MANAGER: Lazy<VMManager<'static>> = Lazy::new(|| VMManager::new());
 
 #[repr(packed)]
 pub struct Entry(usize);
