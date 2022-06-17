@@ -32,7 +32,25 @@ pub unsafe extern "C" fn init() {
 
 #[cfg(target_arch = "aarch64")]
 pub unsafe extern "C" fn init() {
+    use crate::device::raspi3b::mailbox::*;
     info!("init");
+
+    MBOX.mbox[0] = 8 * 4;
+    MBOX.mbox[1] = MBOX_REQUEST;
+    MBOX.mbox[2] = MBOX_TAG_GETSERIAL;
+    MBOX.mbox[3] = 8;
+    MBOX.mbox[4] = 8;
+    MBOX.mbox[5] = 0;
+    MBOX.mbox[6] = 0;
+    MBOX.mbox[7] = MBOX_TAG_LAST;
+
+    if MBOX.mbox_call(MBOX_CH_PROP) {
+        println!(
+            "my serial number is {}",
+            ((MBOX.mbox[6] as usize) << 32) | MBOX.mbox[5] as usize
+        );
+    }
+
     loop {
         task::TASK_MANAGER.schedule();
     }

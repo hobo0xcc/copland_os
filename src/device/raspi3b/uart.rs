@@ -1,7 +1,7 @@
 #![allow(non_upper_case_globals)]
 #![allow(dead_code)]
 
-use crate::arch::aarch64::address::*;
+use super::base::*;
 use crate::lazy::Lazy;
 use core::arch::asm;
 use core::fmt::{Error, Write};
@@ -35,11 +35,11 @@ impl MiniUart {
     }
 
     unsafe fn write_reg(&self, offset: usize, value: u32) {
-        ((_mmio_base + offset) as *mut u32).write_volatile(value);
+        ((MMIO_BASE + offset) as *mut u32).write_volatile(value);
     }
 
     unsafe fn read_reg(&self, offset: usize) -> u32 {
-        ((_mmio_base + offset) as *mut u32).read_volatile()
+        ((MMIO_BASE + offset) as *mut u32).read_volatile()
     }
 
     pub unsafe fn init(&self) {
@@ -51,11 +51,11 @@ impl MiniUart {
         self.write_reg(AUX_MU_IIR, 0xc6);
         self.write_reg(AUX_MU_BAUD, 270);
 
-        let mut r = (_gpfsel1 as *mut u32).read_volatile();
+        let mut r = (GPFSEL1 as *mut u32).read_volatile();
         r &= !((7 << 12) | (7 << 15));
         r |= (2 << 12) | (2 << 15);
-        (_gpfsel1 as *mut u32).write_volatile(r);
-        (_gppud as *mut u32).write_volatile(0);
+        (GPFSEL1 as *mut u32).write_volatile(r);
+        (GPPUD as *mut u32).write_volatile(0);
 
         r = 150;
         while r != 0 {
@@ -63,7 +63,7 @@ impl MiniUart {
             asm!("nop");
         }
 
-        (_gppudclk0 as *mut u32).write_volatile((1 << 14) | (1 << 15));
+        (GPPUDCLK0 as *mut u32).write_volatile((1 << 14) | (1 << 15));
 
         r = 150;
         while r != 0 {
@@ -71,7 +71,7 @@ impl MiniUart {
             asm!("nop");
         }
 
-        (_gppudclk0 as *mut u32).write_volatile(0);
+        (GPPUDCLK0 as *mut u32).write_volatile(0);
         self.write_reg(AUX_MU_CNTL, 3);
     }
 
