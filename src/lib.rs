@@ -13,6 +13,7 @@ extern crate volatile;
 pub mod allocator;
 pub mod arch;
 pub mod device;
+pub mod fs;
 pub mod lazy;
 pub mod lock;
 pub mod logger;

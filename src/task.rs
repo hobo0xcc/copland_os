@@ -11,7 +11,7 @@ use crate::arch::riscv64;
 #[cfg(target_arch = "aarch64")]
 use crate::arch::aarch64;
 
-pub const KERNEL_STACK_SIZE: usize = 4096;
+pub const KERNEL_STACK_SIZE: usize = 0x8000;
 
 pub static mut TASK_MANAGER: Lazy<TaskManager> = Lazy::new(|| TaskManager::new());
 

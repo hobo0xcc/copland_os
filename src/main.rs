@@ -11,17 +11,19 @@ use log::info;
 
 #[cfg(target_arch = "riscv64")]
 pub unsafe extern "C" fn init() {
-    use alloc::alloc::{alloc_zeroed, Layout};
     use copland_os::arch::riscv64;
     use copland_os::device::common::virtio;
+    use core::ops::{Deref, DerefMut};
 
     info!("init");
 
     riscv64::plic::PLIC_MANAGER.init_irq(riscv64::plic::PlicIRQ::VirtIO0);
     virtio::block::VIRTIO_BLOCK.init(riscv64::address::_virtio_start as usize);
 
-    let buf = alloc_zeroed(Layout::from_size_align(512, 512).unwrap());
-    virtio::block::VIRTIO_BLOCK.block_op(buf, 0, virtio::block::BlockOpType::Read);
+    let root_dir = fs::fat32::FILE_SYSTEM.root_dir();
+    for e in root_dir.iter().map(|e| e.unwrap()) {
+        println!("{}", e.file_name());
+    }
 
     loop {
         task::TASK_MANAGER.schedule();
@@ -86,8 +88,6 @@ pub unsafe extern "C" fn main() -> ! {
     let id = task::TASK_MANAGER.create_task("init", init as usize);
     task::TASK_MANAGER.ready_task(id);
     task::TASK_MANAGER.schedule();
-
-    println!("Hello");
 
     loop {}
 }

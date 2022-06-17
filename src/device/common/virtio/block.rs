@@ -42,8 +42,15 @@ pub struct VirtIOBlockReq {
     sector: u64,
 }
 
+#[repr(C)]
+pub struct Config {
+    capacity: u64,
+    // ...
+}
+
 pub struct VirtIOBlock<'q> {
     header: &'q mut VirtIORegister,
+    config: &'q mut Config,
     pages: *mut u8,
     desc: &'q mut [VirtQueueDesc; DESC_NUM],
     avail: &'q mut VirtQueueAvail,
@@ -72,6 +79,7 @@ impl VirtIOBlock<'_> {
         info!("VirtIO init: Start");
         assert_eq!(core::mem::size_of::<VirtIORegister>(), 0x74);
         self.header = (addr as *mut VirtIORegister).as_mut().unwrap();
+        self.config = ((addr + 0x100) as *mut Config).as_mut().unwrap();
         if self.header.magic_value.read() != 0x74726976
             || self.header.version.read() != 1
             || self.header.device_id.read() != 2
@@ -202,6 +210,7 @@ impl VirtIOBlock<'_> {
             addr: buf as u64,
             len: BLOCK_SIZE as u32,
             flags: {
+                // TODO: refine
                 let mut flags = match op {
                     BlockOpType::Read => VirtQueueDescFlag::VIRTQ_DESC_F_WRITE as u16,
                     BlockOpType::Write => 0,
@@ -235,6 +244,10 @@ impl VirtIOBlock<'_> {
         }
 
         self.free_desc(indexes[0]);
+    }
+
+    pub fn size(&self) -> usize {
+        self.config.capacity as usize
     }
 
     pub fn interrupt(&mut self) {

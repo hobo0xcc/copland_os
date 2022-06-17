@@ -12,6 +12,9 @@ This project is a work in progress. By the way, *Have you ever seen the lain?*
   - `cargo install cargo-make`
 - QEMU
   - https://www.qemu.org/download/
+- dosfstools
+  - macOS: `brew install dosfstools`
+  - ubuntu: `apt install dosfstools`
 
 # Build
 

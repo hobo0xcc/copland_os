@@ -4,11 +4,15 @@ BIN = "kernel.elf"
 BOARD = "default"
 CORE = "1"
 DISK = "disk.img"
+DISK_SIZE = "256M"
 MODE = "debug"
 
 [tasks.make-disk]
 script = '''
-touch $DISK
+if [ ! -f "$DISK" ]; then
+    qemu-img create -f raw "$DISK" $DISK_SIZE
+    mkfs.fat -n 'DISK' -F 32 "$DISK"
+fi
 '''
 
 [tasks.build]
