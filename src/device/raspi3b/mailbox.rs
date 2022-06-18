@@ -1,14 +1,3 @@
-// #define VIDEOCORE_MBOX  (MMIO_BASE+0x0000B880)
-// #define MBOX_READ       ((volatile unsigned int*)(VIDEOCORE_MBOX+0x0))
-// #define MBOX_POLL       ((volatile unsigned int*)(VIDEOCORE_MBOX+0x10))
-// #define MBOX_SENDER     ((volatile unsigned int*)(VIDEOCORE_MBOX+0x14))
-// #define MBOX_STATUS     ((volatile unsigned int*)(VIDEOCORE_MBOX+0x18))
-// #define MBOX_CONFIG     ((volatile unsigned int*)(VIDEOCORE_MBOX+0x1C))
-// #define MBOX_WRITE      ((volatile unsigned int*)(VIDEOCORE_MBOX+0x20))
-// #define MBOX_RESPONSE   0x80000000
-// #define MBOX_FULL       0x80000000
-// #define MBOX_EMPTY      0x40000000
-
 use super::base::*;
 use core::arch::asm;
 
@@ -25,35 +14,19 @@ pub const MBOX_RESPONSE: u32 = 0x80000000;
 pub const MBOX_FULL: u32 = 0x80000000;
 pub const MBOX_EMPTY: u32 = 0x40000000;
 
-// extern volatile unsigned int mbox[36];
-
-// #define MBOX_REQUEST    0
 pub const MBOX_REQUEST: u32 = 0;
 
-// /* channels */
-// #define MBOX_CH_POWER   0
 pub const MBOX_CH_POWER: u8 = 0;
-// #define MBOX_CH_FB      1
 pub const MBOX_CH_FB: u8 = 1;
-// #define MBOX_CH_VUART   2
 pub const MBOX_CH_VUART: u8 = 2;
-// #define MBOX_CH_VCHIQ   3
 pub const MBOX_CH_VCHIQ: u8 = 3;
-// #define MBOX_CH_LEDS    4
 pub const MBOX_CH_LEDS: u8 = 4;
-// #define MBOX_CH_BTNS    5
 pub const MBOX_CH_BTNS: u8 = 5;
-// #define MBOX_CH_TOUCH   6
 pub const MBOX_CH_TOUCH: u8 = 6;
-// #define MBOX_CH_COUNT   7
 pub const MBOX_CH_COUNT: u8 = 7;
-// #define MBOX_CH_PROP    8
 pub const MBOX_CH_PROP: u8 = 8;
 
-// /* tags */
-// #define MBOX_TAG_GETSERIAL      0x10004
 pub const MBOX_TAG_GETSERIAL: u32 = 0x10004;
-// #define MBOX_TAG_LAST           0
 pub const MBOX_TAG_LAST: u32 = 0;
 
 // https://github.com/BrianSidebotham/arm-tutorial-rpi/blob/master/part-5/armc-017/rpi-mailbox-interface.h
