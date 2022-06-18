@@ -28,7 +28,7 @@ impl<T, F: FnOnce() -> T> Deref for Lazy<T, F> {
 
 impl<T, F: FnOnce() -> T> DerefMut for Lazy<T, F> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        self.cell.get_or_init(|| match self.init.take() {
+        let _ = self.cell.get_or_init(|| match self.init.take() {
             Some(f) => f(),
             None => panic!("invalid init function"),
         });

@@ -34,3 +34,6 @@
   - https://github.com/ghaerr/microwindows
   - wayland?
 - [ ] x86_64 support
+  - [ ] boot
+    - UEFI?
+  - [ ] print
