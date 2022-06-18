@@ -32,6 +32,7 @@ pub unsafe extern "C" fn init() {
 
 #[cfg(target_arch = "aarch64")]
 pub unsafe extern "C" fn init() {
+    use crate::device::raspi3b::framebuffer::*;
     use crate::device::raspi3b::mailbox::*;
     info!("init");
 
@@ -49,6 +50,14 @@ pub unsafe extern "C" fn init() {
             "my serial number is {}",
             ((MBOX.mbox[6] as usize) << 32) | MBOX.mbox[5] as usize
         );
+    }
+
+    let width = FRAMEBUFFER.width as usize;
+    let height = FRAMEBUFFER.height as usize;
+    for y in 0..height {
+        for x in 0..width {
+            FRAMEBUFFER.fb.add(y * width + x).write(0xffffffff);
+        }
     }
 
     loop {
