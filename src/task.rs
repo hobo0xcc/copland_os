@@ -85,6 +85,7 @@ impl TaskManager {
             .update_state(TaskState::Running);
     }
 
+    // Round robin scheduling
     pub unsafe fn schedule(&mut self) {
         if self.ready_queue.len() == 0 {
             return;

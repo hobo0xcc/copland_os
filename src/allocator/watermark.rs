@@ -26,14 +26,14 @@ unsafe impl GlobalAlloc for WaterMarkAllocator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         let align = layout.align();
         let curr = *self.current_position.get();
-        let to_be_allocated = curr + (align - curr % align);
-        let new_position = to_be_allocated + layout.size();
+        let alloc_at = curr + (align - curr % align);
+        let new_position = alloc_at + layout.size();
         if new_position >= self.heap_end {
             panic!("Allocaion failed: {:?}, current_position: {}", layout, curr);
         }
         *self.current_position.get() = new_position;
 
-        to_be_allocated as *mut u8
+        alloc_at as *mut u8
     }
 
     unsafe fn dealloc(&self, _ptr: *mut u8, _layout: Layout) {}
