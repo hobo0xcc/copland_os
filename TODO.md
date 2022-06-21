@@ -29,6 +29,8 @@
 - [ ] formal verification
   - https://github.com/xldenis/creusot ?
   - lean prover?
+  - https://github.com/model-checking/kani
+- testing
 - [ ] binary compatibility with linux
 - [ ] window system
   - https://github.com/ghaerr/microwindows

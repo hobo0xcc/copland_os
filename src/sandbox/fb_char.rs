@@ -1,7 +1,7 @@
 use crate::device::raspi3b::framebuffer::{FrameBuffer, FRAMEBUFFER};
 use core::convert::Infallible;
 use core::ops::{Deref, DerefMut};
-use embedded_graphics::mono_font::{ascii::FONT_10X20, ascii::FONT_6X10, MonoTextStyle};
+use embedded_graphics::mono_font::{ascii::FONT_10X20, MonoTextStyle};
 use embedded_graphics::pixelcolor::*;
 use embedded_graphics::prelude::*;
 use embedded_graphics::text::{Alignment, Text};

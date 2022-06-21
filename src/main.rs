@@ -137,6 +137,7 @@ pub unsafe extern "C" fn init() {
     }
 
     sandbox::fb_char::fb_char();
+    // sandbox::sd::test();
 
     loop {
         task::TASK_MANAGER.schedule();
