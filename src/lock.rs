@@ -127,7 +127,7 @@ unsafe impl Sync for KernelLock {}
 unsafe impl Send for KernelLock {}
 
 impl KernelLock {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             locked: AtomicBool::new(false),
             cpu_id: UnsafeCell::new(None),

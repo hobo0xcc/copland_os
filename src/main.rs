@@ -146,6 +146,8 @@ pub unsafe extern "C" fn init() {
         alloc_zeroed(layout)
     };
 
+    sd::SDCARD.sd_readblock(0, buf, 1);
+
     for i in 0..512 {
         if i % 8 == 0 {
             println!();
