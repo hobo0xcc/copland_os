@@ -66,15 +66,17 @@ qemu-system-riscv64 -machine virt -bios none -m 256M -smp $CORE -serial stdio -k
 '''
 
 [tasks.run-aarch64-dev]
-dependencies = ["build-aarch64-dev"]
+dependencies = ["build-aarch64-dev", "make-disk"]
 script = '''
-qemu-system-aarch64 -s -machine raspi3b -m 1G -serial null -serial stdio -kernel $BIN
+qemu-system-aarch64 -s -machine raspi3b -m 1G -serial null -serial stdio -kernel $BIN \
+    -drive file=$DISK,if=sd,format=raw
 '''
 
 [tasks.run-aarch64]
-dependencies = ["build-aarch64"]
+dependencies = ["build-aarch64", "make-disk"]
 script = '''
-qemu-system-aarch64 -machine raspi3b -m 1G -serial null -serial stdio -kernel $BIN
+qemu-system-aarch64 -machine raspi3b -m 1G -serial null -serial stdio -kernel $BIN \
+    -drive file=$DISK,if=sd,format=raw
 '''
 
 [tasks.debug-riscv64]
@@ -86,7 +88,7 @@ qemu-system-riscv64 -s -S -machine virt -bios none -m 256M -smp $CORE -serial st
 '''
 
 [tasks.debug-aarch64]
-dependencies = ["build-aarch64-dev"]
+dependencies = ["build-aarch64-dev", "make-disk"]
 script = '''
 qemu-system-aarch64 -s -S -machine raspi3b -m 1G -serial null -serial stdio -kernel $BIN
 '''

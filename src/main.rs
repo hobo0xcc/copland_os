@@ -3,7 +3,6 @@
 #![no_main]
 
 extern crate alloc;
-extern crate copland_os;
 
 use copland_os::*;
 use core::arch::asm;
@@ -109,6 +108,7 @@ pub unsafe extern "C" fn init() {
 pub unsafe extern "C" fn init() {
     use crate::device::raspi3b::framebuffer::*;
     use crate::device::raspi3b::mailbox::*;
+    use alloc::alloc::{alloc_zeroed, Layout};
 
     info!("init");
 
@@ -137,7 +137,23 @@ pub unsafe extern "C" fn init() {
     }
 
     sandbox::fb_char::fb_char();
-    // sandbox::sd::test();
+    if sandbox::sd::SDCARD.sd_init() != sandbox::sd::SDError::SD_OK.bits() {
+        panic!("SDError");
+    }
+    let buf = {
+        let layout = Layout::from_size_align(512, 512).unwrap();
+        alloc_zeroed(layout)
+    };
+    sandbox::sd::SDCARD.sd_readblock(0, buf, 1);
+
+    for i in 0..512 {
+        if i % 8 == 0 {
+            println!();
+        }
+        let ch = buf.add(i).read();
+        print!("{:02x} ", ch);
+    }
+    println!();
 
     loop {
         task::TASK_MANAGER.schedule();
