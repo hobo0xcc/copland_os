@@ -30,6 +30,7 @@ pub enum TaskState {
     Stop,
 }
 
+#[allow(dead_code)]
 pub struct Task {
     id: TaskId,
     name: String,

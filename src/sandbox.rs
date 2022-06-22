@@ -3,5 +3,3 @@
 
 #[cfg(target_board = "raspi3b")]
 pub mod fb_char;
-#[cfg(target_board = "raspi3b")]
-pub mod sd;

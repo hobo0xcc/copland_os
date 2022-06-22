@@ -108,6 +108,7 @@ pub unsafe extern "C" fn init() {
 pub unsafe extern "C" fn init() {
     use crate::device::raspi3b::framebuffer::*;
     use crate::device::raspi3b::mailbox::*;
+    use crate::device::raspi3b::*;
     use alloc::alloc::{alloc_zeroed, Layout};
 
     info!("init");
@@ -137,14 +138,13 @@ pub unsafe extern "C" fn init() {
     }
 
     sandbox::fb_char::fb_char();
-    if sandbox::sd::SDCARD.sd_init() != sandbox::sd::SDError::SD_OK.bits() {
+    if sd::SDCARD.sd_init() != sd::SDError::SD_OK.bits() {
         panic!("SDError");
     }
     let buf = {
         let layout = Layout::from_size_align(512, 512).unwrap();
         alloc_zeroed(layout)
     };
-    sandbox::sd::SDCARD.sd_readblock(0, buf, 1);
 
     for i in 0..512 {
         if i % 8 == 0 {

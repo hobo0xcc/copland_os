@@ -2,7 +2,6 @@
 
 use crate::device::raspi3b::base::*;
 use crate::lazy::Lazy;
-use crate::*;
 use bitflags::bitflags;
 use core::arch::asm;
 use log::{error, info};
@@ -110,6 +109,7 @@ bitflags! {
     }
 }
 
+#[allow(dead_code)]
 pub struct SDCard {
     sd_scr: [u64; 2],
     sd_ocr: u64,
@@ -189,7 +189,7 @@ impl SDCard {
             self.sd_err = SDError::SD_TIMEOUT.bits() as u64;
             return 0;
         }
-        info!("Sending command: {}, arg: {}", code, arg);
+        info!("Sending command: {:#x}, arg: {}", code, arg);
         Self::write_reg(EMMC_INTERRUPT, Self::read_reg(EMMC_INTERRUPT));
         Self::write_reg(EMMC_ARG1, arg);
         Self::write_reg(EMMC_CMDTM, code);
@@ -377,7 +377,6 @@ impl SDCard {
             (Self::read_reg(EMMC_CONTROL1) & 0xffff_003f) | d,
         );
         wait_msec(10);
-        info!("DEBUG ... d: {:x}, h: {:x}", d, h);
         Self::write_reg(
             EMMC_CONTROL1,
             Self::read_reg(EMMC_CONTROL1) | Control::C1_CLK_EN.bits(),
@@ -457,11 +456,6 @@ impl SDCard {
                 | Control::C1_TOUNIT_MAX.bits(),
         );
         wait_msec(10);
-
-        println!(
-            "r: {:x}, ccs: {:x}, ocr: {:x}, rca: {:x}, err: {:x}, hv: {:x}",
-            r, ccs, self.sd_ocr, self.sd_rca, self.sd_err, self.sd_hv
-        );
         r = self.sd_clk(400000) as i64;
         if r != 0 {
             return r as u32;

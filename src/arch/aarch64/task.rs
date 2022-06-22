@@ -94,6 +94,7 @@ impl Context {
     }
 }
 
+#[allow(dead_code)]
 pub struct Task {
     id: TaskId,
     pub context: Context,
