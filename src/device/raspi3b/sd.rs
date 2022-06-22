@@ -1,9 +1,9 @@
 #![allow(unused_assignments)]
 
 use crate::device::raspi3b::base::*;
+use crate::device::raspi3b::wait::*;
 use crate::lazy::Lazy;
 use bitflags::bitflags;
-use core::arch::asm;
 use log::{error, info};
 
 // https://github.com/bztsrc/raspi3-tutorial/blob/master/0B_readsector/sd.c
@@ -580,29 +580,5 @@ impl SDCard {
         self.sd_scr[0] &= !(ScrFlag::SCR_SUPP_CCS.bits() as u64);
         self.sd_scr[0] |= ccs as u64;
         return SDError::SD_OK.bits();
-    }
-}
-
-pub fn wait_msec(n: u64) {
-    let (mut f, mut t, mut r): (u64, u64, u64);
-    unsafe {
-        asm!("mrs {}, cntfrq_el0", out(reg)f);
-        asm!("mrs {}, cntpct_el0", out(reg)t);
-        t += ((f / 1000).wrapping_mul(n)) / 1000;
-        asm!("mrs {}, cntpct_el0", out(reg)r);
-        while r < t {
-            asm!("mrs {}, cntpct_el0", out(reg)r);
-        }
-    }
-}
-
-pub fn wait_cycles(mut n: u32) {
-    if n != 0 {
-        while n != 0 {
-            n -= 1;
-            unsafe {
-                asm!("nop");
-            }
-        }
     }
 }
