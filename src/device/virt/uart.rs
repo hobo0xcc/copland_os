@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use crate::arch::riscv64::address;
-use crate::lazy::Lazy;
+use crate::sync::lazy::Lazy;
 use core::fmt::{Error, Write};
 use volatile::Volatile;
 

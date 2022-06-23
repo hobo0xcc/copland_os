@@ -1,5 +1,5 @@
 use super::mailbox::*;
-use crate::lazy::Lazy;
+use crate::sync::lazy::Lazy;
 
 pub static mut FRAMEBUFFER: Lazy<FrameBuffer> = Lazy::new(|| {
     let mut fb = FrameBuffer {

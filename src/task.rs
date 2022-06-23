@@ -1,4 +1,4 @@
-use crate::lazy::Lazy;
+use crate::sync::lazy::Lazy;
 use alloc::alloc::{alloc_zeroed, Layout};
 use alloc::collections::VecDeque;
 use alloc::string::{String, ToString};

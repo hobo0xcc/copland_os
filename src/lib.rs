@@ -8,13 +8,12 @@ pub mod allocator;
 pub mod arch;
 pub mod device;
 pub mod fs;
-pub mod lazy;
-pub mod lock;
 pub mod logger;
 pub mod print;
 pub mod sandbox;
+pub mod sync;
 pub mod task;
 
-use lock::KernelLock;
+use sync::mutex::KernelLock;
 
 pub static mut KERNEL_LOCK: KernelLock = KernelLock::new();

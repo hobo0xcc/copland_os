@@ -2,7 +2,7 @@
 
 use super::header::*;
 use super::queue::*;
-use crate::lazy::Lazy;
+use crate::sync::lazy::Lazy;
 use crate::KERNEL_LOCK;
 use alloc::alloc::{alloc_zeroed, Layout};
 use alloc::vec::Vec;
