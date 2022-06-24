@@ -21,35 +21,43 @@ This project is a work in progress. By the way, *Have you ever seen the lain?*
 ## Debug build
 
 ```bash
-makers build-[arch_name]-dev
+# riscv64 virt
+makers build-riscv64-dev
+
+# aarch64 raspi3b
+makers build-aarch64-dev
 ```
 
 ## Release build
 
 ```bash
-makers build-[arch_name]
+# riscv64 virt
+makers build-riscv64
+
+# aarch64 raspi3b
+makers build-aarch64
 ```
 
-The compiled executable is `./kernel.elf` .
+The compiled kernel executable is `./kernel.elf` .
 
 # Run
 
 ```bash
 # Debug mode
-makers run-[arch_name]-dev # this requires QEMU
+makers run-[riscv64 | aarch64]-dev # this requires QEMU
 
 # Release mode
-makers run-[arch_name] # this requires QEMU
+makers run-[riscv64 | aarch64] # this requires QEMU
 ```
 
 # Debug with gdb
 
 ```bash
-makers debug-[arch_name]
+makers debug-[riscv64 | aarch64]
 ```
 
 ```bash
-rust-gdb -x tools/[board_name].gdb
+rust-gdb -x tools/[virt | raspi3b].gdb
 ```
 
 # Supported boards
