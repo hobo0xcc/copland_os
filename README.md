@@ -38,7 +38,7 @@ makers build-riscv64
 makers build-aarch64
 ```
 
-The compiled kernel executable is `./kernel.elf` .
+The compiled kernel binary is `./kernel.elf` .
 
 # Run
 
