@@ -1,5 +1,7 @@
 extern crate toml;
 
+use toml::map::Map;
+
 fn default_arch() -> String {
     use toml::Value::Table;
     let config_str = std::fs::read_to_string("./.cargo/config.toml").unwrap();
@@ -30,4 +32,11 @@ fn main() {
         board => board,
     };
     println!("cargo:rustc-cfg=target_board=\"{}\"", target_board);
+
+    let config_str = std::fs::read_to_string("kernel.toml").unwrap();
+    let values = config_str.parse::<toml::Value>().unwrap();
+    let map_dummy = Map::new();
+    for (name, val) in values.as_table().unwrap_or(&map_dummy) {
+        println!("cargo:rustc-cfg={}={}", name, val.to_string());
+    }
 }

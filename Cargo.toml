@@ -5,6 +5,8 @@ version = "0.0.1"
 
 [dependencies]
 bitflags = "1.3.2"
+const-default = {version = "1.0", features = ["derive"]}
+dlmalloc = {git = "https://github.com/hobo0xcc/dlmalloc-rs.git"}
 embedded-graphics = "0.7.1"
 fatfs = {git = "https://github.com/rafalh/rust-fatfs.git", default-features = false, features = ["alloc", "lfn"]}
 hashbrown = "0.12.0"
