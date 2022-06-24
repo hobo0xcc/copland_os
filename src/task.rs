@@ -13,7 +13,8 @@ use crate::arch::aarch64;
 
 pub const KERNEL_STACK_SIZE: usize = 0x8000;
 
-pub static mut TASK_MANAGER: Lazy<TaskManager> = Lazy::new(|| TaskManager::new());
+pub static mut TASK_MANAGER: Lazy<TaskManager> =
+    Lazy::<TaskManager, fn() -> TaskManager>::new(|| TaskManager::new());
 
 pub trait ArchTaskManager {
     unsafe fn context_switch(&mut self, from: TaskId, to: TaskId);

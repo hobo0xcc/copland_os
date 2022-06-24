@@ -7,7 +7,8 @@ use core::mem::size_of;
 use hashbrown::HashMap;
 use log::info;
 
-pub static mut VM_MANAGER: Lazy<VMManager> = Lazy::new(|| VMManager::new());
+pub static mut VM_MANAGER: Lazy<VMManager> =
+    Lazy::<VMManager, fn() -> VMManager>::new(|| VMManager::new());
 
 #[repr(C)]
 pub struct EntrySv39(usize);

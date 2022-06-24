@@ -1,6 +1,6 @@
-#![feature(panic_info_message, start, naked_functions)]
 #![no_std]
 #![no_main]
+#![feature(start, naked_functions)]
 
 extern crate alloc;
 
@@ -33,26 +33,29 @@ pub unsafe extern "C" fn boot() -> ! {
 #[no_mangle]
 #[cfg(target_arch = "riscv64")]
 pub unsafe extern "C" fn main() -> ! {
-    KERNEL_LOCK.lock();
+    copland_os::KERNEL_LOCK.lock();
 
-    allocator::init_allocator();
-    logger::init_logger();
+    copland_os::allocator::init_allocator();
+    copland_os::logger::init_logger();
+
+    #[cfg(test)]
+    test_main();
 
     println!("PRESENT DAY\n  PRESENT TIME");
 
     info!("Arch: RISC-V");
-    info!("Core: {}", crate::arch::riscv64::riscv::STATE.cpuid());
+    info!("Core: {}", copland_os::arch::riscv64::riscv::STATE.cpuid());
 
     {
         use copland_os::arch::riscv64::*;
         vm::VM_MANAGER.init();
     }
 
-    task::TASK_MANAGER.init();
+    copland_os::task::TASK_MANAGER.init();
 
-    let id = task::TASK_MANAGER.create_task("init", init as usize);
-    task::TASK_MANAGER.ready_task(id);
-    task::TASK_MANAGER.schedule();
+    let id = copland_os::task::TASK_MANAGER.create_task("init", init as usize);
+    copland_os::task::TASK_MANAGER.ready_task(id);
+    copland_os::task::TASK_MANAGER.schedule();
 
     loop {}
 }
@@ -94,13 +97,13 @@ pub unsafe extern "C" fn init() {
     riscv64::plic::PLIC_MANAGER.init_irq(riscv64::plic::PlicIRQ::VirtIO0);
     virtio::block::VIRTIO_BLOCK.init(riscv64::address::_virtio_start as usize);
 
-    let root_dir = fs::fat32::FILE_SYSTEM.root_dir();
+    let root_dir = copland_os::fs::fat32::FILE_SYSTEM.root_dir();
     for e in root_dir.iter().map(|e| e.unwrap()) {
         println!("{}", e.file_name());
     }
 
     loop {
-        task::TASK_MANAGER.schedule();
+        copland_os::task::TASK_MANAGER.schedule();
     }
 }
 
@@ -160,20 +163,4 @@ pub unsafe extern "C" fn init() {
     loop {
         task::TASK_MANAGER.schedule();
     }
-}
-
-#[panic_handler]
-fn panic(info: &core::panic::PanicInfo) -> ! {
-    print!("Panic: ");
-    if let Some(location) = info.location() {
-        println!(
-            "line: {}, file: {}: {}",
-            location.line(),
-            location.file(),
-            info.message().unwrap()
-        );
-    } else {
-        println!("No information available");
-    }
-    loop {}
 }

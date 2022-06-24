@@ -21,3 +21,5 @@ extern "C" {
     pub fn _virtio_start();
     pub fn _virtio_end();
 }
+
+pub const SIFIVE_TEST: usize = 0x100000;

@@ -9,6 +9,7 @@ embedded-graphics = "0.7.1"
 fatfs = {git = "https://github.com/rafalh/rust-fatfs.git", default-features = false, features = ["alloc", "lfn"]}
 hashbrown = "0.12.0"
 log = "0.4.17"
+qemu-exit = "3.0.1"
 spin = "0.9.2"
 volatile = "0.3.0"
 

@@ -14,7 +14,8 @@ use log::info;
 
 pub const BLOCK_SIZE: usize = 512;
 
-pub static mut VIRTIO_BLOCK: Lazy<VirtIOBlock<'static>> = Lazy::new(|| VirtIOBlock::new());
+pub static mut VIRTIO_BLOCK: Lazy<VirtIOBlock<'static>> =
+    Lazy::<VirtIOBlock, fn() -> VirtIOBlock<'static>>::new(|| VirtIOBlock::new());
 
 #[allow(non_camel_case_types)]
 #[repr(u32)]

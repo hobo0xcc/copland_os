@@ -5,7 +5,7 @@ use crate::sync::lazy::Lazy;
 use core::fmt::{Error, Write};
 use volatile::Volatile;
 
-pub static mut UART: Lazy<Uart> = Lazy::new(|| unsafe {
+pub static mut UART: Lazy<Uart> = Lazy::<Uart, fn() -> Uart>::new(|| unsafe {
     let mut uart = Uart::new();
     uart.init();
     uart

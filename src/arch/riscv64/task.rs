@@ -3,7 +3,8 @@ use crate::task::{ArchTaskManager, TaskId};
 use core::arch::global_asm;
 use hashbrown::HashMap;
 
-pub static mut ARCH_TASK_MANAGER: Lazy<TaskManager> = Lazy::new(|| TaskManager::new());
+pub static mut ARCH_TASK_MANAGER: Lazy<TaskManager> =
+    Lazy::<TaskManager, fn() -> TaskManager>::new(|| TaskManager::new());
 
 global_asm!(include_str!("switch.S"));
 

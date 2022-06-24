@@ -1,7 +1,8 @@
 use crate::arch::riscv64::*;
 use crate::sync::lazy::Lazy;
 
-pub static mut PLIC_MANAGER: Lazy<PLICManager> = Lazy::new(|| PLICManager::new());
+pub static mut PLIC_MANAGER: Lazy<PLICManager> =
+    Lazy::<PLICManager, fn() -> PLICManager>::new(|| PLICManager::new());
 
 // https://github.com/riscv/riscv-plic-spec/blob/master/riscv-plic.adoc#memory-map
 // https://github.com/mit-pdos/xv6-riscv/blob/riscv/kernel/plic.c

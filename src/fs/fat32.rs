@@ -5,7 +5,10 @@ use fatfs::{IoBase, IoError, Read, Seek, Write};
 
 pub static mut FILE_SYSTEM: Lazy<
     fatfs::FileSystem<Disk, fatfs::NullTimeProvider, fatfs::LossyOemCpConverter>,
-> = Lazy::new(|| unsafe {
+> = Lazy::<
+    fatfs::FileSystem<Disk, fatfs::NullTimeProvider, fatfs::LossyOemCpConverter>,
+    fn() -> fatfs::FileSystem<Disk<'static>, fatfs::NullTimeProvider, fatfs::LossyOemCpConverter>,
+>::new(|| unsafe {
     fatfs::FileSystem::new(Disk::new(VIRTIO_BLOCK.deref_mut()), fatfs::FsOptions::new()).unwrap()
 });
 
