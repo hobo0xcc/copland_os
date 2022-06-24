@@ -1,5 +1,5 @@
 use crate::device::common::virtio::block::{BlockOpType, VirtIOBlock, BLOCK_SIZE, VIRTIO_BLOCK};
-use crate::sync::lazy::Lazy;
+use crate::lazy::Lazy;
 use core::ops::DerefMut;
 use fatfs::{IoBase, IoError, Read, Seek, Write};
 

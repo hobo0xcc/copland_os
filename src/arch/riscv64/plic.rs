@@ -1,5 +1,5 @@
 use crate::arch::riscv64::*;
-use crate::sync::lazy::Lazy;
+use crate::lazy::Lazy;
 
 pub static mut PLIC_MANAGER: Lazy<PLICManager> =
     Lazy::<PLICManager, fn() -> PLICManager>::new(|| PLICManager::new());

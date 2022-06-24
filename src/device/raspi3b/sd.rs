@@ -2,7 +2,7 @@
 
 use crate::device::raspi3b::base::*;
 use crate::device::raspi3b::wait::*;
-use crate::sync::lazy::Lazy;
+use crate::lazy::Lazy;
 use bitflags::bitflags;
 use log::{error, info};
 

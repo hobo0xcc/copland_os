@@ -1,4 +1,4 @@
-use crate::sync::lazy::Lazy;
+use crate::lazy::Lazy;
 use crate::task::{ArchTaskManager, TaskId};
 use core::arch::global_asm;
 use hashbrown::HashMap;

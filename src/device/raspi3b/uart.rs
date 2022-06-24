@@ -2,7 +2,7 @@
 #![allow(dead_code)]
 
 use super::base::*;
-use crate::sync::lazy::Lazy;
+use crate::lazy::Lazy;
 use core::arch::asm;
 use core::fmt::{Error, Write};
 

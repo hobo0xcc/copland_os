@@ -8,6 +8,7 @@ pub mod allocator;
 pub mod arch;
 pub mod device;
 pub mod fs;
+pub mod lazy;
 pub mod logger;
 pub mod print;
 pub mod sandbox;

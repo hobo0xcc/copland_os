@@ -1,5 +1,5 @@
 use crate::arch::CpuId;
-use crate::sync::lazy::Lazy;
+use crate::lazy::Lazy;
 use core::arch::asm;
 
 pub static mut STATE: Lazy<CpuState> = Lazy::new(|| CpuState::new());

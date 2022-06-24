@@ -1,5 +1,5 @@
 use crate::arch::riscv64::csr::*;
-use crate::sync::lazy::Lazy;
+use crate::lazy::Lazy;
 use alloc::alloc::*;
 use alloc::string::{String, ToString};
 use core::arch::asm;
