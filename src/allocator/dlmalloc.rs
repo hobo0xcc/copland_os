@@ -93,7 +93,6 @@ unsafe impl GlobalAlloc for GlobalDlmalloc {
     }
 }
 
-// static sys: System = System::new();
 static mut DLMALLOC: Dlmalloc<System> = Dlmalloc::<System>::new_with_allocator(System::new());
 
 struct Instance;

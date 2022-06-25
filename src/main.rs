@@ -35,11 +35,8 @@ pub unsafe extern "C" fn boot() -> ! {
 pub unsafe extern "C" fn main() -> ! {
     copland_os::KERNEL_LOCK.lock();
 
-    copland_os::allocator::init_allocator();
     copland_os::logger::init_logger();
-
-    #[cfg(test)]
-    test_main();
+    copland_os::allocator::init_allocator();
 
     println!("PRESENT DAY\n  PRESENT TIME");
 
@@ -65,8 +62,8 @@ pub unsafe extern "C" fn main() -> ! {
 pub unsafe extern "C" fn main() -> ! {
     KERNEL_LOCK.lock();
 
-    allocator::init_allocator();
     logger::init_logger();
+    allocator::init_allocator();
 
     println!("PRESENT DAY\n  PRESENT TIME");
 
@@ -98,6 +95,7 @@ pub unsafe extern "C" fn init() {
     virtio::block::VIRTIO_BLOCK.init(riscv64::address::_virtio_start as usize);
 
     let root_dir = copland_os::fs::fat32::FILE_SYSTEM.root_dir();
+    root_dir.create_file("aaa.txt");
     for e in root_dir.iter().map(|e| e.unwrap()) {
         println!("{}", e.file_name());
     }

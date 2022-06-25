@@ -2,6 +2,7 @@ pub mod dlmalloc;
 pub mod watermark;
 
 use core::alloc::Layout;
+use log::info;
 
 #[cfg(allocator = "WaterMark")]
 use watermark::WaterMarkAllocator;
@@ -24,6 +25,8 @@ pub fn init_allocator() {
     #[cfg(target_arch = "riscv64")]
     use crate::arch::riscv64::address;
 
+    info!("Initialize WaterMark allocator");
+
     let heap_start = address::_heap_start as usize;
     let heap_end = address::_heap_end as usize;
     unsafe {
@@ -32,7 +35,9 @@ pub fn init_allocator() {
 }
 
 #[cfg(allocator = "Dlmalloc")]
-pub fn init_allocator() {}
+pub fn init_allocator() {
+    info!("Initialize Dlmalloc allocator");
+}
 
 #[alloc_error_handler]
 fn oom_handler(_layout: Layout) -> ! {
