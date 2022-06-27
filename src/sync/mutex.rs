@@ -8,7 +8,7 @@ use core::sync::atomic::{AtomicBool, Ordering};
 pub struct KernelLock {
     locked: AtomicBool,
     cpu_id: UnsafeCell<Option<CpuId>>,
-    intr: UnsafeCell<bool>,
+    intr: AtomicBool,
     intr_flag: UnsafeCell<ArchInterruptFlag>,
 }
 
@@ -20,7 +20,7 @@ impl KernelLock {
         Self {
             locked: AtomicBool::new(false),
             cpu_id: UnsafeCell::new(None),
-            intr: UnsafeCell::new(false),
+            intr: AtomicBool::new(false),
             intr_flag: UnsafeCell::new(ArchInterruptFlag::DEFAULT),
         }
     }
@@ -65,18 +65,19 @@ impl KernelLock {
     }
 
     pub unsafe fn complete_intr(&self) {
-        *self.intr.get() = true;
+        self.intr.store(true, Ordering::SeqCst);
+        // self.intr.get().write(true);
     }
 
     pub unsafe fn wait_intr(&self) {
-        *self.intr.get() = false;
+        self.intr.store(false, Ordering::SeqCst);
         self.intr_flag.get().as_ref().unwrap().restore();
         assert!(crate::arch::is_interrupt_on());
-        while !*self.intr.get() {}
-        assert!(*self.intr.get());
+        while !self.intr.load(Ordering::SeqCst) {}
+        assert!(self.intr.load(Ordering::SeqCst));
         *self.intr_flag.get() = ArchInterruptFlag::save_and_off();
         assert!(!crate::arch::is_interrupt_on());
-        *self.intr.get() = false;
+        self.intr.store(false, Ordering::SeqCst);
     }
 }
 

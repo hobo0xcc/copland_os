@@ -53,7 +53,7 @@ makers run-[riscv64 | aarch64] # this requires QEMU
 # Debug with gdb
 
 ```bash
-makers debug-[riscv64 | aarch64]
+makers debug-[riscv64 | aarch64]-dev
 ```
 
 ```bash

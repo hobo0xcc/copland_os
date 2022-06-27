@@ -34,6 +34,12 @@ impl ArchTaskManager for TaskManager {
         switch(context_from, context_to);
     }
 
+    unsafe fn user_switch(&mut self, current: TaskId) -> ! {
+        assert!(self.tasks.contains_key(&current));
+        loop {}
+        // let task = self.tasks.get(&current).unwrap();
+    }
+
     fn create_arch_task(&mut self, id: TaskId) {
         self.tasks.insert(id, Task::new(id));
     }

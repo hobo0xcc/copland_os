@@ -18,6 +18,7 @@ pub static mut TASK_MANAGER: Lazy<TaskManager> =
 
 pub trait ArchTaskManager {
     unsafe fn context_switch(&mut self, from: TaskId, to: TaskId);
+    unsafe fn user_switch(&mut self, current: TaskId) -> !;
     fn create_arch_task(&mut self, id: TaskId);
     fn init_stack(&mut self, id: TaskId, stack_pointer: usize);
     fn init_start(&mut self, id: TaskId, start_address: usize);

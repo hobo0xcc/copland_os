@@ -9,6 +9,7 @@ use alloc::vec::Vec;
 use core::mem;
 use core::sync::atomic::{fence, Ordering};
 use log::info;
+use volatile::ReadWrite;
 
 // https://github.com/mit-pdos/xv6-riscv/blob/riscv/kernel/virtio_disk.c
 
@@ -60,7 +61,7 @@ pub struct VirtIOBlock<'q> {
     used_idx: u16,
     requests: [VirtIOBlockReq; DESC_NUM],
     status: [u8; DESC_NUM],
-    complete: [bool; DESC_NUM],
+    complete: [ReadWrite<bool>; DESC_NUM],
 }
 
 unsafe impl Send for VirtIOBlock<'_> {}
@@ -157,6 +158,9 @@ impl VirtIOBlock<'_> {
         for free in self.free.iter_mut() {
             *free = true;
         }
+        for complete in self.complete.iter_mut() {
+            complete.write(false);
+        }
 
         info!("VirtIO init: Succeeded");
     }
@@ -230,7 +234,7 @@ impl VirtIOBlock<'_> {
             next: 0,
         };
 
-        self.complete[indexes[0] as usize] = false;
+        self.complete[indexes[0] as usize].write(false);
         self.avail.ring[self.avail.idx as usize % DESC_NUM] = indexes[0];
 
         fence(Ordering::SeqCst);
@@ -238,7 +242,7 @@ impl VirtIOBlock<'_> {
         fence(Ordering::SeqCst);
 
         self.header.queue_notify.write(0);
-        while !self.complete[indexes[0] as usize] {
+        while !self.complete[indexes[0] as usize].read() {
             unsafe {
                 KERNEL_LOCK.wait_intr();
             }
@@ -264,7 +268,7 @@ impl VirtIOBlock<'_> {
                 panic!("VirtIO status");
             }
 
-            self.complete[id] = true;
+            self.complete[id].write(true);
             self.used_idx += 1;
         }
     }
