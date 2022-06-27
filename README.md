@@ -57,7 +57,7 @@ makers debug-[riscv64 | aarch64]-dev
 ```
 
 ```bash
-rust-gdb -x tools/[virt | raspi3b].gdb
+rust-gdb -x tools/script.gdb
 ```
 
 # Supported boards
