@@ -10,6 +10,18 @@ use crate::arch::riscv64;
 #[cfg(target_arch = "aarch64")]
 use crate::arch::aarch64;
 
+macro_rules! arch_task_manager {
+    () => {
+        loop {
+            #[cfg(target_arch = "riscv64")]
+            break &mut riscv64::task::ARCH_TASK_MANAGER;
+
+            #[cfg(target_arch = "aarch64")]
+            break &mut aarch64::task::ARCH_TASK_MANAGER;
+        }
+    };
+}
+
 pub static mut TASK_MANAGER: Lazy<TaskManager> =
     Lazy::<TaskManager, fn() -> TaskManager>::new(|| TaskManager::new());
 
@@ -135,17 +147,24 @@ impl TaskManager {
         assert!(self.tasks.contains_key(&task_id));
 
         unsafe {
-            #[cfg(target_arch = "riscv64")]
-            let arch_task_manager = &mut riscv64::task::ARCH_TASK_MANAGER;
+            // #[cfg(target_arch = "riscv64")]
+            // let arch_task_manager = &mut riscv64::task::ARCH_TASK_MANAGER;
 
-            #[cfg(target_arch = "aarch64")]
-            let arch_task_manager = &mut aarch64::task::ARCH_TASK_MANAGER;
+            // #[cfg(target_arch = "aarch64")]
+            // let arch_task_manager = &mut aarch64::task::ARCH_TASK_MANAGER;
+            let arch_tm = arch_task_manager!();
 
-            arch_task_manager.create_arch_task(task_id, name.to_string());
+            arch_tm.create_arch_task(task_id, name.to_string());
             // arch_task_manager.init_stack(task_id, kernel_stack as usize + KERNEL_STACK_SIZE);
-            arch_task_manager.init_start(task_id, func);
+            arch_tm.init_start(task_id, func);
         }
 
         task_id
     }
+}
+
+pub unsafe fn user_entry() -> ! {
+    let task = TASK_MANAGER.tasks.get(&TASK_MANAGER.running).unwrap();
+    let arch_tm = arch_task_manager!();
+    arch_tm.user_switch(task.id);
 }

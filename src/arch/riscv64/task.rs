@@ -10,8 +10,9 @@ use alloc::string::*;
 use core::arch::{asm, global_asm};
 use hashbrown::HashMap;
 
+pub const USER_CONTEXT: usize = 0x3f_ffff_e000;
 // virtual address of trampoline
-pub const TRAMPOLINE: usize = 0x7f_ffff_f000;
+pub const TRAMPOLINE: usize = 0x3f_ffff_f000;
 // max kernel stack size
 pub const KERNEL_STACK_SIZE: usize = 0x8000;
 
@@ -64,21 +65,21 @@ impl ArchTaskManager for TaskManager {
         let mut tp: usize;
         asm!("mv {}, tp", out(reg)tp);
 
-        task.ucontext.kernel_satp = Csr::Satp.read();
-        task.ucontext.kernel_sp = (task.kernel_stack as usize) + KERNEL_STACK_SIZE;
-        task.ucontext.kernel_hartid = tp;
-        task.ucontext.kernel_trap = trap::user_trap as usize;
+        (*task.ucontext).kernel_satp = Csr::Satp.read();
+        (*task.ucontext).kernel_sp = (task.kernel_stack as usize) + KERNEL_STACK_SIZE;
+        (*task.ucontext).kernel_hartid = tp;
+        (*task.ucontext).kernel_trap = trap::user_trap as usize;
 
         let mut sstatus = Csr::Sstatus.read();
         sstatus &= !Sstatus::SPP.mask();
         sstatus |= Sstatus::SPIE.mask();
         Csr::Sstatus.write(sstatus);
 
-        Csr::Sepc.write(task.ucontext.epc);
+        Csr::Sepc.write((*task.ucontext).epc);
 
         let fn_ret = TRAMPOLINE + ((userret as usize) - (trampoline as usize));
         (core::mem::transmute::<*mut u8, fn(usize, usize) -> !>(fn_ret as *mut u8))(
-            (&task.ucontext as *const UserContext) as usize,
+            USER_CONTEXT,
             user_satp,
         );
     }
@@ -112,13 +113,6 @@ impl ArchTaskManager for TaskManager {
             Task::new(id, name, page_table_name, page_table, kernel_stack),
         );
     }
-
-    // fn init_stack(&mut self, id: TaskId, stack_pointer: usize) {
-    //     if !self.tasks.contains_key(&id) {
-    //         panic!("Unknown Task ID: {}", id);
-    //     }
-    //     self.tasks.get_mut(&id).unwrap().kcontext.sp = stack_pointer;
-    // }
 
     fn init_start(&mut self, id: TaskId, start_address: usize) {
         if !self.tasks.contains_key(&id) {
@@ -224,7 +218,7 @@ pub struct Task {
     page_table: *mut PageTable,
     kernel_stack: *mut u8,
     pub kcontext: KernelContext,
-    pub ucontext: UserContext,
+    pub ucontext: *mut UserContext,
 }
 
 impl Task {
@@ -235,6 +229,23 @@ impl Task {
         page_table: *mut PageTable,
         kernel_stack: *mut u8,
     ) -> Self {
+        let ucontext = unsafe {
+            let layout = Layout::from_size_align(vm::PAGE_SIZE, vm::PAGE_SIZE).unwrap();
+            alloc_zeroed(layout)
+        } as *mut UserContext;
+        unsafe {
+            vm::VM_MANAGER
+                .map(
+                    &page_table_name,
+                    ucontext as usize,
+                    USER_CONTEXT,
+                    true,
+                    true,
+                    false,
+                    false,
+                )
+                .unwrap();
+        }
         Self {
             id,
             name,
@@ -245,7 +256,7 @@ impl Task {
                 sp: kernel_stack as usize + KERNEL_STACK_SIZE,
                 ..Default::default()
             },
-            ucontext: UserContext::default(),
+            ucontext,
         }
     }
 }

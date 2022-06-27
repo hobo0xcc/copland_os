@@ -41,8 +41,6 @@ impl ArchTaskManager for TaskManager {
     unsafe fn user_switch(&mut self, current: TaskId) -> ! {
         assert!(self.tasks.contains_key(&current));
         unimplemented!();
-        loop {}
-        // let task = self.tasks.get(&current).unwrap();
     }
 
     fn create_arch_task(&mut self, id: TaskId, name: String) {

@@ -17,6 +17,7 @@ pub unsafe extern "C" fn user_trap() -> ! {
     loop {}
 }
 
+// TODO: refine
 #[no_mangle]
 pub unsafe extern "C" fn kernel_trap() {
     let scause = Csr::Scause.read();
