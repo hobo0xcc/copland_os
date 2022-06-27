@@ -1,3 +1,4 @@
+.section .trampoline
 .globl trampoline
 trampoline:
 .align 4

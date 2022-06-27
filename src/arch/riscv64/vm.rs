@@ -1,4 +1,5 @@
 use crate::arch::riscv64::csr::*;
+use crate::arch::riscv64::task::{trampoline, TRAMPOLINE};
 use crate::lazy::Lazy;
 use alloc::alloc::*;
 use alloc::string::{String, ToString};
@@ -204,14 +205,33 @@ impl VMManager {
         **self.root_tables.get(name).as_mut().unwrap()
     }
 
+    pub fn set_table(&mut self, name: String, table: *mut PageTable) {
+        self.root_tables.insert(name, table);
+    }
+
+    pub fn make_satp(&self, name: &str) -> usize {
+        // Sv39
+        (8 << 60) | (self.get_table(name) as usize >> 12)
+    }
+
     pub fn init(&mut self) {
         info!("Initialize VM Manager");
         let root_table = self.create_table();
-        self.root_tables.insert("kernel".to_string(), root_table);
+        self.set_table("kernel".to_string(), root_table);
         unsafe {
             let root_table = self.get_table("kernel");
             self.identity_mapping(root_table, 2, 0);
-            Csr::Satp.write((8 << 60) | (self.get_table("kernel") as usize >> 12));
+            self.map(
+                "kernel",
+                trampoline as usize,
+                TRAMPOLINE,
+                true,
+                true,
+                true,
+                false,
+            )
+            .unwrap();
+            Csr::Satp.write(self.make_satp("kernel"));
             asm!("sfence.vma zero, zero");
         }
     }

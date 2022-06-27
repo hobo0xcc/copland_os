@@ -2,6 +2,7 @@ use core::arch::asm;
 use core::panic;
 use core::prelude::rust_2021::{derive, Debug};
 
+// TODO: Replace with bitflags
 macro_rules! field_info {
     ($name:ident) => {
         impl $name {
@@ -37,6 +38,7 @@ pub enum Sstatus {
     SPIE = 0b1 << 5,
     SIE = 0b1 << 1,
     FS = 0b11 << 13,
+    SPP = 0b1 << 8,
 }
 
 field_info!(Mie);

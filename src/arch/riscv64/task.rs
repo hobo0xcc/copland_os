@@ -1,7 +1,19 @@
+use crate::arch::riscv64::csr::*;
+use crate::arch::riscv64::trap;
+use crate::arch::riscv64::vm;
+use crate::arch::riscv64::vm::PageTable;
 use crate::lazy::Lazy;
 use crate::task::{ArchTaskManager, TaskId};
-use core::arch::global_asm;
+use alloc::alloc::{alloc_zeroed, Layout};
+use alloc::format;
+use alloc::string::*;
+use core::arch::{asm, global_asm};
 use hashbrown::HashMap;
+
+// virtual address of trampoline
+pub const TRAMPOLINE: usize = 0x7f_ffff_f000;
+// max kernel stack size
+pub const KERNEL_STACK_SIZE: usize = 0x8000;
 
 pub static mut ARCH_TASK_MANAGER: Lazy<TaskManager> =
     Lazy::<TaskManager, fn() -> TaskManager>::new(|| TaskManager::new());
@@ -10,6 +22,14 @@ global_asm!(include_str!("switch.S"));
 
 extern "C" {
     pub fn switch(from: usize, to: usize);
+}
+
+global_asm!(include_str!("trampoline.S"));
+
+extern "C" {
+    pub fn trampoline();
+    pub fn uservec();
+    pub fn userret(context: usize, satp: usize);
 }
 
 pub struct TaskManager {
@@ -37,20 +57,68 @@ impl ArchTaskManager for TaskManager {
 
     unsafe fn user_switch(&mut self, current: TaskId) -> ! {
         assert!(self.tasks.contains_key(&current));
-        loop {}
-        // let task = self.tasks.get(&current).unwrap();
+        // write virtual address of uservec to stvec
+        Csr::Stvec.write(TRAMPOLINE + ((uservec as usize) - (trampoline as usize)));
+        let task = self.tasks.get_mut(&current).unwrap();
+        let user_satp = vm::VM_MANAGER.make_satp(task.page_table_name.as_str());
+        let mut tp: usize;
+        asm!("mv {}, tp", out(reg)tp);
+
+        task.ucontext.kernel_satp = Csr::Satp.read();
+        task.ucontext.kernel_sp = (task.kernel_stack as usize) + KERNEL_STACK_SIZE;
+        task.ucontext.kernel_hartid = tp;
+        task.ucontext.kernel_trap = trap::user_trap as usize;
+
+        let mut sstatus = Csr::Sstatus.read();
+        sstatus &= !Sstatus::SPP.mask();
+        sstatus |= Sstatus::SPIE.mask();
+        Csr::Sstatus.write(sstatus);
+
+        Csr::Sepc.write(task.ucontext.epc);
+
+        let fn_ret = TRAMPOLINE + ((userret as usize) - (trampoline as usize));
+        (core::mem::transmute::<*mut u8, fn(usize, usize) -> !>(fn_ret as *mut u8))(
+            (&task.ucontext as *const UserContext) as usize,
+            user_satp,
+        );
     }
 
-    fn create_arch_task(&mut self, id: TaskId) {
-        self.tasks.insert(id, Task::new(id));
-    }
-
-    fn init_stack(&mut self, id: TaskId, stack_pointer: usize) {
-        if !self.tasks.contains_key(&id) {
-            panic!("Unknown Task ID: {}", id);
+    fn create_arch_task(&mut self, id: TaskId, name: String) {
+        let page_table_name = format!("{}.{}", name, id);
+        let page_table = unsafe {
+            let ptr = vm::VM_MANAGER.create_table();
+            vm::VM_MANAGER.set_table(page_table_name.clone(), ptr);
+            ptr
+        };
+        unsafe {
+            vm::VM_MANAGER
+                .map(
+                    &page_table_name,
+                    trampoline as usize,
+                    TRAMPOLINE,
+                    true,
+                    true,
+                    true,
+                    false,
+                )
+                .unwrap();
         }
-        self.tasks.get_mut(&id).unwrap().kcontext.sp = stack_pointer;
+        let kernel_stack = unsafe {
+            let layout = Layout::from_size_align(KERNEL_STACK_SIZE, 0x1000).unwrap();
+            alloc_zeroed(layout)
+        };
+        self.tasks.insert(
+            id,
+            Task::new(id, name, page_table_name, page_table, kernel_stack),
+        );
     }
+
+    // fn init_stack(&mut self, id: TaskId, stack_pointer: usize) {
+    //     if !self.tasks.contains_key(&id) {
+    //         panic!("Unknown Task ID: {}", id);
+    //     }
+    //     self.tasks.get_mut(&id).unwrap().kcontext.sp = stack_pointer;
+    // }
 
     fn init_start(&mut self, id: TaskId, start_address: usize) {
         if !self.tasks.contains_key(&id) {
@@ -60,7 +128,7 @@ impl ArchTaskManager for TaskManager {
     }
 }
 
-// For context switch in kernel
+// For the context switch in the kernel
 // We only need to save and restore the callee-saved registers because
 // the caller-saved registers (i.e. non callee-saved registers) may be overwritten after
 // the call of context switch.
@@ -151,15 +219,32 @@ impl KernelContext {
 #[allow(dead_code)]
 pub struct Task {
     id: TaskId,
+    name: String,
+    page_table_name: String,
+    page_table: *mut PageTable,
+    kernel_stack: *mut u8,
     pub kcontext: KernelContext,
     pub ucontext: UserContext,
 }
 
 impl Task {
-    pub fn new(id: TaskId) -> Self {
+    pub fn new(
+        id: TaskId,
+        name: String,
+        page_table_name: String,
+        page_table: *mut PageTable,
+        kernel_stack: *mut u8,
+    ) -> Self {
         Self {
             id,
-            kcontext: KernelContext::default(),
+            name,
+            page_table_name,
+            page_table,
+            kernel_stack,
+            kcontext: KernelContext {
+                sp: kernel_stack as usize + KERNEL_STACK_SIZE,
+                ..Default::default()
+            },
             ucontext: UserContext::default(),
         }
     }

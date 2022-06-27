@@ -12,6 +12,12 @@ extern "C" {
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn user_trap() -> ! {
+    println!("user_trap");
+    loop {}
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn kernel_trap() {
     let scause = Csr::Scause.read();
     if scause & (1 << 63) == 0 {

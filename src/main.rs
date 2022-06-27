@@ -95,7 +95,7 @@ pub unsafe extern "C" fn init() {
     virtio::block::VIRTIO_BLOCK.init(riscv64::address::_virtio_start as usize);
 
     let root_dir = copland_os::fs::fat32::FILE_SYSTEM.root_dir();
-    root_dir.create_file("aaa.txt");
+    root_dir.create_file("aaa.txt").unwrap();
     for e in root_dir.iter().map(|e| e.unwrap()) {
         println!("{}", e.file_name());
     }

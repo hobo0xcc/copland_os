@@ -1,7 +1,11 @@
 use crate::lazy::Lazy;
 use crate::task::{ArchTaskManager, TaskId};
+use alloc::alloc::{alloc_zeroed, Layout};
+use alloc::string::*;
 use core::arch::global_asm;
 use hashbrown::HashMap;
+
+pub const KERNEL_STACK_SIZE: usize = 0x8000;
 
 pub static mut ARCH_TASK_MANAGER: Lazy<TaskManager> = Lazy::new(|| TaskManager::new());
 
@@ -36,19 +40,17 @@ impl ArchTaskManager for TaskManager {
 
     unsafe fn user_switch(&mut self, current: TaskId) -> ! {
         assert!(self.tasks.contains_key(&current));
+        unimplemented!();
         loop {}
         // let task = self.tasks.get(&current).unwrap();
     }
 
-    fn create_arch_task(&mut self, id: TaskId) {
-        self.tasks.insert(id, Task::new(id));
-    }
-
-    fn init_stack(&mut self, id: TaskId, stack_pointer: usize) {
-        if !self.tasks.contains_key(&id) {
-            panic!("Unknown Task ID: {}", id);
-        }
-        self.tasks.get_mut(&id).unwrap().context.sp = stack_pointer;
+    fn create_arch_task(&mut self, id: TaskId, name: String) {
+        let kernel_stack = unsafe {
+            let layout = Layout::from_size_align(KERNEL_STACK_SIZE, 0x1000).unwrap();
+            alloc_zeroed(layout)
+        };
+        self.tasks.insert(id, Task::new(id, name, kernel_stack));
     }
 
     fn init_start(&mut self, id: TaskId, start_address: usize) {
@@ -59,7 +61,7 @@ impl ArchTaskManager for TaskManager {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Default)]
 #[allow(dead_code)]
 #[repr(packed)]
 pub struct Context {
@@ -79,38 +81,24 @@ pub struct Context {
     x30: usize,
 }
 
-impl Context {
-    pub fn new() -> Self {
-        Self {
-            sp: 0,
-            x18: 0,
-            x19: 0,
-            x20: 0,
-            x21: 0,
-            x22: 0,
-            x23: 0,
-            x24: 0,
-            x25: 0,
-            x26: 0,
-            x27: 0,
-            x28: 0,
-            x29: 0,
-            x30: 0,
-        }
-    }
-}
-
 #[allow(dead_code)]
 pub struct Task {
     id: TaskId,
+    name: String,
+    kernel_stack: *mut u8,
     pub context: Context,
 }
 
 impl Task {
-    pub fn new(id: TaskId) -> Self {
+    pub fn new(id: TaskId, name: String, kernel_stack: *mut u8) -> Self {
         Self {
             id,
-            context: Context::new(),
+            name,
+            kernel_stack,
+            context: Context {
+                sp: kernel_stack as usize + KERNEL_STACK_SIZE,
+                ..Default::default()
+            },
         }
     }
 }
