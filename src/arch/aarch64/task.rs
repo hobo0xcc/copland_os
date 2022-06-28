@@ -1,3 +1,4 @@
+use crate::error::TaskError;
 use crate::lazy::Lazy;
 use crate::task::{ArchTaskManager, TaskId};
 use alloc::alloc::{alloc_zeroed, Layout};
@@ -43,6 +44,18 @@ impl ArchTaskManager for TaskManager {
         unimplemented!();
     }
 
+    fn map(
+        &mut self,
+        id: TaskId,
+        _paddr: usize,
+        _vaddr: usize,
+        _r: bool,
+        _w: bool,
+        _x: bool,
+    ) -> Result<(), TaskError> {
+        Err(TaskError::TaskNotFound(id))
+    }
+
     fn create_arch_task(&mut self, id: TaskId, name: String) {
         let kernel_stack = unsafe {
             let layout = Layout::from_size_align(KERNEL_STACK_SIZE, 0x1000).unwrap();
@@ -51,11 +64,17 @@ impl ArchTaskManager for TaskManager {
         self.tasks.insert(id, Task::new(id, name, kernel_stack));
     }
 
-    fn init_start(&mut self, id: TaskId, start_address: usize) {
-        if !self.tasks.contains_key(&id) {
-            panic!("Unknown Task ID: {}", id);
-        }
-        self.tasks.get_mut(&id).unwrap().context.x30 = start_address;
+    fn init_start(&mut self, id: TaskId, start_address: usize) -> Result<(), TaskError> {
+        self.tasks
+            .get_mut(&id)
+            .ok_or(TaskError::TaskNotFound(id))?
+            .context
+            .x30 = start_address;
+        Ok(())
+    }
+
+    fn init_user_entry(&mut self, id: TaskId, _entry: usize) -> Result<(), TaskError> {
+        Err(TaskError::TaskNotFound(id))
     }
 }
 

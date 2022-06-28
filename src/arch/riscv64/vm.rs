@@ -1,5 +1,6 @@
 use crate::arch::riscv64::csr::*;
 use crate::arch::riscv64::task::{trampoline, TRAMPOLINE};
+use crate::error::VMError;
 use crate::lazy::Lazy;
 use alloc::alloc::*;
 use alloc::string::{String, ToString};
@@ -14,12 +15,6 @@ pub const PAGE_SIZE: usize = 4096;
 
 pub static mut VM_MANAGER: Lazy<VMManager> =
     Lazy::<VMManager, fn() -> VMManager>::new(|| VMManager::new());
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum VMError {
-    Misaligned,
-    NotFound,
-}
 
 bitflags! {
     struct PTE: usize {

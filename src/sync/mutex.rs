@@ -73,7 +73,9 @@ impl KernelLock {
         self.intr.store(false, Ordering::SeqCst);
         self.intr_flag.get().as_ref().unwrap().restore();
         assert!(crate::arch::is_interrupt_on());
+        // println!("wait_intr1");
         while !self.intr.load(Ordering::SeqCst) {}
+        // println!("wait_intr2");
         assert!(self.intr.load(Ordering::SeqCst));
         *self.intr_flag.get() = ArchInterruptFlag::save_and_off();
         assert!(!crate::arch::is_interrupt_on());

@@ -48,16 +48,20 @@ pub unsafe extern "C" fn main() -> ! {
         vm::VM_MANAGER.init();
     }
 
-    copland_os::task::TASK_MANAGER.init();
+    copland_os::task::TASK_MANAGER.init().unwrap();
 
-    let id = copland_os::task::TASK_MANAGER.create_task("init", init as usize);
+    let id = copland_os::task::TASK_MANAGER
+        .create_task("init", init as usize)
+        .unwrap();
     copland_os::task::TASK_MANAGER.ready_task(id);
     copland_os::task::TASK_MANAGER.schedule();
 
-    let id =
-        copland_os::task::TASK_MANAGER.create_task("user", copland_os::task::user_entry as usize);
-    copland_os::task::TASK_MANAGER.ready_task(id);
-    copland_os::task::TASK_MANAGER.schedule();
+    // let id = copland_os::task::TASK_MANAGER
+    //     .create_task("user", copland_os::task::user_entry as usize)
+    //     .unwrap();
+    // copland_os::task::TASK_MANAGER.exec(id, "/hello").unwrap();
+    // copland_os::task::TASK_MANAGER.ready_task(id);
+    // copland_os::task::TASK_MANAGER.schedule();
 
     loop {}
 }
@@ -80,9 +84,11 @@ pub unsafe extern "C" fn main() -> ! {
         vm::VM_MANAGER.init();
     }
 
-    task::TASK_MANAGER.init();
+    task::TASK_MANAGER.init().unwrap();
 
-    let id = task::TASK_MANAGER.create_task("init", init as usize);
+    let id = task::TASK_MANAGER
+        .create_task("init", init as usize)
+        .unwrap();
     task::TASK_MANAGER.ready_task(id);
     task::TASK_MANAGER.schedule();
 
@@ -100,7 +106,7 @@ pub unsafe extern "C" fn init() {
     virtio::block::VIRTIO_BLOCK.init(riscv64::address::_virtio_start as usize);
 
     let root_dir = copland_os::fs::fat32::FILE_SYSTEM.root_dir();
-    root_dir.create_file("aaa.txt").unwrap();
+    root_dir.create_file("bbb.txt").unwrap();
     for e in root_dir.iter().map(|e| e.unwrap()) {
         println!("{}", e.file_name());
     }

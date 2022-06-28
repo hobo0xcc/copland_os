@@ -2,6 +2,7 @@ use crate::arch::riscv64::csr::*;
 use crate::arch::riscv64::trap;
 use crate::arch::riscv64::vm;
 use crate::arch::riscv64::vm::PageTable;
+use crate::error::TaskError;
 use crate::lazy::Lazy;
 use crate::task::{ArchTaskManager, TaskId};
 use alloc::alloc::{alloc_zeroed, Layout};
@@ -84,6 +85,20 @@ impl ArchTaskManager for TaskManager {
         );
     }
 
+    fn map(
+        &mut self,
+        id: TaskId,
+        paddr: usize,
+        vaddr: usize,
+        r: bool,
+        w: bool,
+        x: bool,
+    ) -> Result<(), TaskError> {
+        let task = self.tasks.get_mut(&id).ok_or(TaskError::TaskNotFound(id))?;
+        task.map(paddr, vaddr, r, w, x)?;
+        Ok(())
+    }
+
     fn create_arch_task(&mut self, id: TaskId, name: String) {
         let page_table_name = format!("{}.{}", name, id);
         let page_table = unsafe {
@@ -91,34 +106,29 @@ impl ArchTaskManager for TaskManager {
             vm::VM_MANAGER.set_table(page_table_name.clone(), ptr);
             ptr
         };
-        unsafe {
-            vm::VM_MANAGER
-                .map(
-                    &page_table_name,
-                    trampoline as usize,
-                    TRAMPOLINE,
-                    true,
-                    true,
-                    true,
-                    false,
-                )
-                .unwrap();
-        }
-        let kernel_stack = unsafe {
-            let layout = Layout::from_size_align(KERNEL_STACK_SIZE, 0x1000).unwrap();
-            alloc_zeroed(layout)
-        };
-        self.tasks.insert(
-            id,
-            Task::new(id, name, page_table_name, page_table, kernel_stack),
-        );
+        self.tasks
+            .insert(id, Task::new(id, name, page_table_name, page_table));
     }
 
-    fn init_start(&mut self, id: TaskId, start_address: usize) {
-        if !self.tasks.contains_key(&id) {
-            panic!("Unknown Task ID: {}", id);
+    fn init_start(&mut self, id: TaskId, start_address: usize) -> Result<(), TaskError> {
+        self.tasks
+            .get_mut(&id)
+            .ok_or(TaskError::TaskNotFound(id))?
+            .kcontext
+            .ra = start_address;
+        Ok(())
+    }
+
+    fn init_user_entry(&mut self, id: TaskId, entry: usize) -> Result<(), TaskError> {
+        let ucontext = self
+            .tasks
+            .get_mut(&id)
+            .ok_or(TaskError::TaskNotFound(id))?
+            .ucontext;
+        unsafe {
+            (*ucontext).epc = entry;
         }
-        self.tasks.get_mut(&id).unwrap().kcontext.ra = start_address;
+        Ok(())
     }
 }
 
@@ -227,13 +237,23 @@ impl Task {
         name: String,
         page_table_name: String,
         page_table: *mut PageTable,
-        kernel_stack: *mut u8,
     ) -> Self {
         let ucontext = unsafe {
             let layout = Layout::from_size_align(vm::PAGE_SIZE, vm::PAGE_SIZE).unwrap();
             alloc_zeroed(layout)
         } as *mut UserContext;
         unsafe {
+            vm::VM_MANAGER
+                .map(
+                    &page_table_name,
+                    trampoline as usize,
+                    TRAMPOLINE,
+                    true,
+                    true,
+                    true,
+                    false,
+                )
+                .unwrap();
             vm::VM_MANAGER
                 .map(
                     &page_table_name,
@@ -246,6 +266,10 @@ impl Task {
                 )
                 .unwrap();
         }
+        let kernel_stack = unsafe {
+            let layout = Layout::from_size_align(KERNEL_STACK_SIZE, 0x1000).unwrap();
+            alloc_zeroed(layout)
+        };
         Self {
             id,
             name,
@@ -258,5 +282,18 @@ impl Task {
             },
             ucontext,
         }
+    }
+
+    pub fn map(
+        &mut self,
+        paddr: usize,
+        vaddr: usize,
+        r: bool,
+        w: bool,
+        x: bool,
+    ) -> Result<(), TaskError> {
+        unsafe { vm::VM_MANAGER.map(self.page_table_name.as_str(), paddr, vaddr, r, w, x, true) }
+            .map_err(|e| TaskError::MapError(e))?;
+        Ok(())
     }
 }

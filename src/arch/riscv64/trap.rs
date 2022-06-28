@@ -13,7 +13,8 @@ extern "C" {
 
 #[no_mangle]
 pub unsafe extern "C" fn user_trap() -> ! {
-    println!("user_trap");
+    println!("user_trap: {:#x}", Csr::Stval.read());
+    println!("scause: {:#x}", Csr::Scause.read());
     loop {}
 }
 

@@ -1,21 +1,29 @@
-use crate::device::common::virtio::block::{BlockOpType, VirtIOBlock, BLOCK_SIZE, VIRTIO_BLOCK};
+use crate::device::common::virtio::block::{BlockOpType, VirtIOBlock, VIRTIO_BLOCK};
+use crate::error::DiskError;
+use crate::fs::buffer::Buffer;
+use crate::fs::Size;
 use crate::lazy::Lazy;
 use core::ops::DerefMut;
 use fatfs::{IoBase, IoError, Read, Seek, Write};
 
-pub static mut FILE_SYSTEM: Lazy<
-    fatfs::FileSystem<Disk, fatfs::NullTimeProvider, fatfs::LossyOemCpConverter>,
-> = Lazy::<
-    fatfs::FileSystem<Disk, fatfs::NullTimeProvider, fatfs::LossyOemCpConverter>,
-    fn() -> fatfs::FileSystem<Disk<'static>, fatfs::NullTimeProvider, fatfs::LossyOemCpConverter>,
->::new(|| unsafe {
-    fatfs::FileSystem::new(Disk::new(VIRTIO_BLOCK.deref_mut()), fatfs::FsOptions::new()).unwrap()
-});
+pub const BLOCK_SIZE: usize = crate::device::common::virtio::block::BLOCK_SIZE;
 
-#[derive(Debug)]
-pub enum DiskError {
-    Dummy,
-}
+pub static mut FILE_SYSTEM: Lazy<
+    fatfs::FileSystem<Buffer<Disk>, fatfs::NullTimeProvider, fatfs::LossyOemCpConverter>,
+> = Lazy::<
+    fatfs::FileSystem<Buffer<Disk>, fatfs::NullTimeProvider, fatfs::LossyOemCpConverter>,
+    fn() -> fatfs::FileSystem<
+        Buffer<Disk<'static>>,
+        fatfs::NullTimeProvider,
+        fatfs::LossyOemCpConverter,
+    >,
+>::new(|| unsafe {
+    fatfs::FileSystem::new(
+        Buffer::new(Disk::new(VIRTIO_BLOCK.deref_mut())),
+        fatfs::FsOptions::new(),
+    )
+    .unwrap()
+});
 
 impl IoError for DiskError {
     fn is_interrupted(&self) -> bool {
@@ -119,14 +127,18 @@ impl<'r> Seek for Disk<'r> {
             fatfs::SeekFrom::Current(i) => {
                 self.pos = (self.pos as i64 + i) as usize;
             }
-            fatfs::SeekFrom::End(i) => {
-                self.pos = ((self.raw.size() * BLOCK_SIZE) as i64 + i) as usize
-            }
+            fatfs::SeekFrom::End(i) => self.pos = (self.size() as i64 + i) as usize,
             fatfs::SeekFrom::Start(n) => {
                 self.pos = n as usize;
             }
         }
 
         Ok(self.pos as u64)
+    }
+}
+
+impl<'r> Size for Disk<'r> {
+    fn size(&self) -> usize {
+        self.raw.size() * BLOCK_SIZE
     }
 }

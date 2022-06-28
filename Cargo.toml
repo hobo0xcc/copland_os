@@ -9,6 +9,7 @@ const-default = {version = "1.0", features = ["derive"]}
 dlmalloc = {git = "https://github.com/hobo0xcc/dlmalloc-rs.git"}
 embedded-graphics = "0.7.1"
 fatfs = {git = "https://github.com/rafalh/rust-fatfs.git", default-features = false, features = ["alloc", "lfn"]}
+goblin = {version = "0.5", default-features = false, features = ["elf32", "elf64", "endian_fd"]}
 hashbrown = "0.12.0"
 log = "0.4.17"
 qemu-exit = "3.0.1"
