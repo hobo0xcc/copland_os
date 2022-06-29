@@ -174,23 +174,13 @@ impl TaskManager {
     pub fn create_task(&mut self, name: &str, func: usize) -> Result<TaskId, TaskError> {
         let task_id = self.next_task_id();
         let task = Task::new(name, task_id);
-        // let kernel_stack = unsafe {
-        //     let layout = Layout::from_size_align(KERNEL_STACK_SIZE, KERNEL_STACK_SIZE).unwrap();
-        //     alloc_zeroed(layout)
-        // };
         self.tasks.insert(task_id, task);
         assert!(self.tasks.contains_key(&task_id));
 
         unsafe {
-            // #[cfg(target_arch = "riscv64")]
-            // let arch_task_manager = &mut riscv64::task::ARCH_TASK_MANAGER;
-
-            // #[cfg(target_arch = "aarch64")]
-            // let arch_task_manager = &mut aarch64::task::ARCH_TASK_MANAGER;
             let arch_tm = arch_task_manager!();
 
             arch_tm.create_arch_task(task_id, name.to_string());
-            // arch_task_manager.init_stack(task_id, kernel_stack as usize + KERNEL_STACK_SIZE);
             arch_tm.init_start(task_id, func)?;
         }
 
