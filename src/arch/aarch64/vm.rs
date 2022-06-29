@@ -1,12 +1,16 @@
+use crate::error::VMError;
 use crate::lazy::Lazy;
 use alloc::alloc::alloc_zeroed;
 use alloc::string::{String, ToString};
+use alloc::vec;
 use bitflags::bitflags;
 use core::alloc::Layout;
 use core::arch::asm;
 use core::mem::size_of;
 use hashbrown::HashMap;
 use log::info;
+
+pub const LEVELS: usize = 3;
 
 // https://developer.arm.com/documentation/ddi0595/2021-12/AArch64-Registers/MAIR-EL1--Memory-Attribute-Indirection-Register--EL1-
 // mair_el1.attr0 = 0b0100_0100  means Normal memory, Inner/Outer Non-cacheable
@@ -23,7 +27,8 @@ bitflags! {
         const AF = 0b1 << 10;
         const NG = 0b1 << 11;
         const NT = 0b1 << 16;
-        const XN = 0b1 << 54;
+        const UXN = 0b1 << 54;
+        const PXN = 0b1 << 53;
 
         // AttrIndx
         const NORMAL_NON_CACHEABLE = 0b00 << 2;
@@ -40,13 +45,62 @@ bitflags! {
         const PAGE = 0b11;
         const TABLE = 0b11;
         const BLOCK = 0b01;
+
+        // Output address
+        const OA = 0x7ff_ffff << 12;
     }
 }
 
 pub static mut VM_MANAGER: Lazy<VMManager> = Lazy::new(|| VMManager::new());
 
+#[derive(Copy, Clone, Debug, Default)]
 #[repr(packed)]
 pub struct Entry(usize);
+
+impl Entry {
+    pub fn is_valid(&self) -> bool {
+        self.0 & 0b11 != 0
+    }
+
+    pub fn is_invalid(&self) -> bool {
+        !self.is_valid()
+    }
+
+    pub fn is_block(&self) -> bool {
+        self.0 & 0b11 == PTE::BLOCK.bits()
+    }
+
+    pub fn as_table(&mut self) {
+        self.0 = (self.0 & !(0b11_usize)) | PTE::TABLE.bits()
+    }
+
+    pub fn set_oa(&mut self, oa: usize) {
+        self.0 = (self.0 & !(PTE::OA.bits())) | oa
+    }
+
+    pub fn get_oa(&self) -> usize {
+        self.0 & PTE::OA.bits()
+    }
+
+    pub fn set_flags(&mut self, r: bool, w: bool, x: bool, u: bool) {
+        assert!(r || w);
+        assert!(!(!r && w)); // invalid read write combination
+                             // ARM Ref: D5.3.3
+        match (r, w, u) {
+            (true, true, true) => self.0 |= PTE::RW_ALL.bits(),
+            (true, true, false) => self.0 |= PTE::RW_EL1.bits(),
+            (true, false, true) => self.0 |= PTE::RO_ALL.bits(),
+            (true, false, false) => self.0 |= PTE::RO_EL1.bits(),
+            _ => unreachable!("r: {} w: {} x: {} u: {}", r, w, x, u),
+        }
+        match (x, u) {
+            (true, true) => self.0 = self.0 & !PTE::UXN.bits(),
+            (true, false) => self.0 = self.0 & !PTE::PXN.bits(),
+            (false, true) => self.0 |= PTE::UXN.bits(),
+            (false, false) => self.0 |= PTE::PXN.bits(),
+        }
+    }
+}
 
 pub struct PageTable {
     entries: [Entry; 512],
@@ -80,7 +134,7 @@ impl VMManager {
         }
     }
 
-    pub fn create_table(&mut self) -> *mut PageTable {
+    pub fn create_table(&self) -> *mut PageTable {
         assert_eq!(size_of::<PageTable>(), 4096);
 
         let table = unsafe {
@@ -94,7 +148,7 @@ impl VMManager {
         table
     }
 
-    pub fn identity_mapping(&mut self, table: *mut PageTable) {
+    pub fn identity_mapping(&self, table: *mut PageTable, level: usize, old: usize) {
         unsafe {
             for i in 0..(*table).entry_length() {
                 // (*table).update_entry(i, Entry(0x00000000000000405 | (i << 30)));
@@ -104,11 +158,74 @@ impl VMManager {
                         PTE::BLOCK.bits()
                             | PTE::NORMAL_CACHEABLE.bits()
                             | PTE::AF.bits()
-                            | (i << 30),
+                            | (i << (12 + 9 * level))
+                            | old,
                     ),
                 );
             }
         }
+    }
+
+    pub fn map_page(
+        &self,
+        mut table: *mut PageTable,
+        paddr: usize,
+        vaddr: usize,
+        r: bool,
+        w: bool,
+        x: bool,
+        u: bool,
+    ) -> Result<(), VMError> {
+        let indexes = vec![
+            (vaddr >> 12) & 0x1ff,
+            (vaddr >> 21) & 0x1ff,
+            (vaddr >> 30) & 0x1ff,
+        ];
+        unsafe {
+            for level in (1..LEVELS).rev() {
+                let entry = (*table).entries[indexes[level]];
+                if entry.is_block() || entry.is_invalid() {
+                    let new_table = self.create_table();
+                    let old = if entry.is_invalid() {
+                        0
+                    } else {
+                        entry.get_oa()
+                    };
+                    let child = level - 1;
+                    self.identity_mapping(new_table, child, old);
+                    let mut new_entry = Entry::default();
+                    new_entry.as_table();
+                    new_entry.set_oa(new_table as usize);
+                    (*table).entries[indexes[level]] = new_entry;
+                    table = new_table;
+                } else {
+                    let new_table = ((*table).entries[indexes[level]].get_oa()) as *mut PageTable;
+                    table = new_table;
+                }
+            }
+            let mut new_entry = Entry::default();
+            new_entry.set_flags(r, w, x, u);
+            new_entry.set_oa(paddr);
+            (*table).entries[indexes[0]] = new_entry;
+        }
+        Ok(())
+    }
+
+    pub fn map(
+        &mut self,
+        name: &str,
+        paddr: usize,
+        vaddr: usize,
+        r: bool,
+        w: bool,
+        x: bool,
+        u: bool,
+    ) -> Result<(), VMError> {
+        assert!(paddr & 0xfff == 0);
+        assert!(vaddr & 0xfff == 0);
+        let table = self.get_table(name);
+        self.map_page(table, paddr, vaddr, r, w, x, u)?;
+        Ok(())
     }
 
     pub fn get_table(&self, name: &str) -> *mut PageTable {
@@ -124,7 +241,7 @@ impl VMManager {
         let root_table = self.create_table();
         self.set_table("kernel", root_table);
         assert!(self.root_tables.contains_key("kernel"));
-        self.identity_mapping(root_table);
+        self.identity_mapping(root_table, 3, 0);
 
         // Is root_table aligned to 2^12?
         assert_eq!(root_table as usize & 0xfff, 0);

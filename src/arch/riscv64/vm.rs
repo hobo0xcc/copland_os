@@ -168,8 +168,8 @@ impl VMManager {
             new_entry.set_flags(true, r, w, x, u);
             new_entry.set_ppn(paddr >> 2);
             (*table).entries[vpn[0]] = new_entry;
-            Ok(())
         }
+        Ok(())
     }
 
     pub fn map(
