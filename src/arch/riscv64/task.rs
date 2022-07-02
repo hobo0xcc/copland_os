@@ -2,6 +2,7 @@ use crate::arch::riscv64::csr::*;
 use crate::arch::riscv64::trap;
 use crate::arch::riscv64::vm;
 use crate::arch::riscv64::vm::PageTable;
+use crate::arch::PAGE_SIZE;
 use crate::error::TaskError;
 use crate::lazy::Lazy;
 use crate::task::{ArchTaskManager, TaskId};
@@ -239,7 +240,7 @@ impl Task {
         page_table: *mut PageTable,
     ) -> Self {
         let ucontext = unsafe {
-            let layout = Layout::from_size_align(vm::PAGE_SIZE, vm::PAGE_SIZE).unwrap();
+            let layout = Layout::from_size_align(PAGE_SIZE, PAGE_SIZE).unwrap();
             alloc_zeroed(layout)
         } as *mut UserContext;
         unsafe {

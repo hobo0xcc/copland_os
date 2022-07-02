@@ -1,3 +1,4 @@
+use crate::arch::PAGE_SIZE;
 use crate::error::VMError;
 use crate::lazy::Lazy;
 use alloc::alloc::alloc_zeroed;
@@ -31,9 +32,9 @@ bitflags! {
         const PXN = 0b1 << 53;
 
         // AttrIndx
-        const NORMAL_NON_CACHEABLE = 0b00 << 2;
-        const NORMAL_CACHEABLE = 0b01 << 2;
-        const DEVICE = 0b10 << 2;
+        const NORMAL_NON_CACHEABLE = 0b000 << 2;
+        const NORMAL_CACHEABLE = 0b001 << 2;
+        const DEVICE = 0b010 << 2;
 
         // AP
         const RO_ALL = 0b11 << 6;
@@ -54,8 +55,8 @@ bitflags! {
 pub static mut VM_MANAGER: Lazy<VMManager> = Lazy::new(|| VMManager::new());
 
 #[derive(Copy, Clone, Debug, Default)]
-#[repr(packed)]
-pub struct Entry(usize);
+#[repr(C)]
+pub struct Entry(pub usize);
 
 impl Entry {
     pub fn is_valid(&self) -> bool {
@@ -72,6 +73,14 @@ impl Entry {
 
     pub fn as_table(&mut self) {
         self.0 = (self.0 & !(0b11_usize)) | PTE::TABLE.bits()
+    }
+
+    pub fn as_page(&mut self) {
+        self.0 = (self.0 & !(0b11_usize)) | PTE::PAGE.bits();
+    }
+
+    pub fn as_block(&mut self) {
+        self.0 = (self.0 & !(0b11_usize)) | PTE::BLOCK.bits();
     }
 
     pub fn set_oa(&mut self, oa: usize) {
@@ -99,6 +108,14 @@ impl Entry {
             (false, true) => self.0 |= PTE::UXN.bits(),
             (false, false) => self.0 |= PTE::PXN.bits(),
         }
+    }
+
+    pub fn set_af(&mut self) {
+        self.0 |= PTE::AF.bits()
+    }
+
+    pub fn set_attr(&mut self, attr: usize) {
+        self.0 = (self.0 & !PTE::ATTRINDX.bits()) | attr;
     }
 }
 
@@ -148,22 +165,74 @@ impl VMManager {
         table
     }
 
+    pub fn get_attr(&self, paddr: usize) -> usize {
+        let mut attr = PTE::NORMAL_CACHEABLE.bits();
+        if cfg!(target_board = "raspi3b") {
+            use crate::device::raspi3b::base::*;
+            if MMIO_BASE <= paddr && paddr < (MMIO_BASE + MMIO_SIZE) {
+                attr = PTE::DEVICE.bits();
+            }
+        }
+        attr
+    }
+
     pub fn identity_mapping(&self, table: *mut PageTable, level: usize, old: usize) {
         unsafe {
             for i in 0..(*table).entry_length() {
-                // (*table).update_entry(i, Entry(0x00000000000000405 | (i << 30)));
+                let paddr = (i << (12 + 9 * level)) | old;
                 (*table).update_entry(
                     i,
                     Entry(
-                        PTE::BLOCK.bits()
-                            | PTE::NORMAL_CACHEABLE.bits()
-                            | PTE::AF.bits()
-                            | (i << (12 + 9 * level))
-                            | old,
+                        PTE::BLOCK.bits() | PTE::NORMAL_CACHEABLE.bits() | PTE::AF.bits() | paddr,
                     ),
                 );
             }
         }
+    }
+
+    pub fn map_device_memory(&self, table: *mut PageTable) -> Result<(), VMError> {
+        if cfg!(target_board = "raspi3b") {
+            use crate::device::raspi3b::base::*;
+            for page in (MMIO_BASE..(MMIO_BASE + MMIO_SIZE)).step_by(PAGE_SIZE) {
+                assert!(page % PAGE_SIZE == 0);
+                self.map_page(
+                    table,
+                    page,
+                    page,
+                    true,
+                    true,
+                    false,
+                    false,
+                    PTE::DEVICE.bits(),
+                )?;
+            }
+        }
+        Ok(())
+    }
+
+    pub fn walk(&self, name: &str, vaddr: usize) -> Result<usize, VMError> {
+        use crate::*;
+        let mut table = self.get_table(name);
+        let vaddr_page = vaddr & !0xfff_usize;
+        println!("vaddr_page: {:#x}", vaddr_page);
+        let indexes = vec![
+            (vaddr_page >> 12) & 0x1ff,
+            (vaddr_page >> 21) & 0x1ff,
+            (vaddr_page >> 30) & 0x1ff,
+        ];
+        for level in (1..LEVELS).rev() {
+            let entry = unsafe { (*table).entries[indexes[level]] };
+            if entry.is_invalid() {
+                return Err(VMError::NotFound);
+            }
+            if entry.is_block() {
+                let mask = (1 << (12 + 9 * level)) - 1;
+                return Ok((entry.get_oa() & !mask) + (vaddr & mask));
+            }
+            // next page table
+            table = (entry.get_oa() & PTE::OA.bits()) as *mut PageTable;
+        }
+        unsafe { Ok(((*table).entries[indexes[0]].get_oa() & PTE::OA.bits()) + (vaddr & 0xfff)) }
     }
 
     pub fn map_page(
@@ -175,6 +244,7 @@ impl VMManager {
         w: bool,
         x: bool,
         u: bool,
+        attr: usize,
     ) -> Result<(), VMError> {
         let indexes = vec![
             (vaddr >> 12) & 0x1ff,
@@ -204,8 +274,11 @@ impl VMManager {
                 }
             }
             let mut new_entry = Entry::default();
+            new_entry.as_page();
             new_entry.set_flags(r, w, x, u);
             new_entry.set_oa(paddr);
+            new_entry.set_attr(attr);
+            new_entry.set_af();
             (*table).entries[indexes[0]] = new_entry;
         }
         Ok(())
@@ -224,7 +297,7 @@ impl VMManager {
         assert!(paddr & 0xfff == 0);
         assert!(vaddr & 0xfff == 0);
         let table = self.get_table(name);
-        self.map_page(table, paddr, vaddr, r, w, x, u)?;
+        self.map_page(table, paddr, vaddr, r, w, x, u, self.get_attr(paddr))?;
         Ok(())
     }
 
@@ -242,6 +315,7 @@ impl VMManager {
         self.set_table("kernel", root_table);
         assert!(self.root_tables.contains_key("kernel"));
         self.identity_mapping(root_table, 3, 0);
+        self.map_device_memory(root_table).unwrap();
 
         // Is root_table aligned to 2^12?
         assert_eq!(root_table as usize & 0xfff, 0);

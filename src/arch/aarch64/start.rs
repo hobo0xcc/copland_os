@@ -1,7 +1,10 @@
-use core::arch::asm;
+use core::arch::{asm, global_asm};
+
+global_asm!(include_str!("vector.S"));
 
 extern "C" {
     pub fn main();
+    pub fn vector();
 }
 
 #[no_mangle]
@@ -27,6 +30,8 @@ pub unsafe extern "C" fn start() {
         msr spsr_el3, x0
         mov x0, sp
         msr sp_el1, x0
+        ldr x0, =vector
+        msr vbar_el1, x0
         eret
     "
     );

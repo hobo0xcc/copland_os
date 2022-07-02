@@ -11,7 +11,6 @@ use hashbrown::HashMap;
 use log::info;
 
 pub const LEVELS: usize = 3;
-pub const PAGE_SIZE: usize = 4096;
 
 pub static mut VM_MANAGER: Lazy<VMManager> =
     Lazy::<VMManager, fn() -> VMManager>::new(|| VMManager::new());

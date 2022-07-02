@@ -1,4 +1,5 @@
 pub const MMIO_BASE: usize = 0x3F000000;
+pub const MMIO_SIZE: usize = 0x01000000;
 pub const GPFSEL0: usize = MMIO_BASE + 0x00200000;
 pub const GPFSEL1: usize = MMIO_BASE + 0x00200004;
 pub const GPFSEL2: usize = MMIO_BASE + 0x00200008;

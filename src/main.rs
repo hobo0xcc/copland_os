@@ -56,13 +56,6 @@ pub unsafe extern "C" fn main() -> ! {
     copland_os::task::TASK_MANAGER.ready_task(id);
     copland_os::task::TASK_MANAGER.schedule();
 
-    // let id = copland_os::task::TASK_MANAGER
-    //     .create_task("user", copland_os::task::user_entry as usize)
-    //     .unwrap();
-    // copland_os::task::TASK_MANAGER.exec(id, "/hello").unwrap();
-    // copland_os::task::TASK_MANAGER.ready_task(id);
-    // copland_os::task::TASK_MANAGER.schedule();
-
     loop {}
 }
 
