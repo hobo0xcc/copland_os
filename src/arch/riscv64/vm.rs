@@ -103,6 +103,25 @@ pub struct PageTable {
     entries: [Entry; 512],
 }
 
+impl PageTable {
+    pub fn size(&self) -> usize {
+        self.entries.len()
+    }
+
+    pub fn identity_mapping(&mut self, level: usize, old_ppn: usize) {
+        for i in 0..self.size() {
+            let entry = &mut self.entries[i];
+            entry.set_ppn((i << (10 + 9 * level)) | old_ppn);
+            entry.set_flags(true, true, true, true, false);
+        }
+    }
+
+    pub fn update_entry(&mut self, index: usize, entry: Entry) {
+        assert!(index < self.size());
+        self.entries[index] = entry;
+    }
+}
+
 pub struct VMManager {
     root_tables: HashMap<String, *mut PageTable>,
 }
@@ -117,19 +136,9 @@ impl VMManager {
         }
     }
 
-    pub fn identity_mapping(&self, table: *mut PageTable, level: usize, old_ppn: usize) {
-        for i in 0..512 {
-            unsafe {
-                let entry = &mut (*table).entries[i];
-                entry.set_ppn((i << (10 + 9 * level)) | old_ppn);
-                entry.set_flags(true, true, true, true, false);
-            }
-        }
-    }
-
     pub fn map_page(
         &self,
-        mut table: *mut PageTable,
+        table: *mut PageTable,
         paddr: usize,
         vaddr: usize,
         r: bool,
@@ -137,6 +146,7 @@ impl VMManager {
         x: bool,
         u: bool,
     ) -> Result<(), VMError> {
+        let mut table = unsafe { table.as_mut().unwrap() };
         let vpn = vec![
             (vaddr >> 12) & 0x1ff,
             (vaddr >> 21) & 0x1ff,
@@ -152,21 +162,23 @@ impl VMManager {
                     } else {
                         entry.get_ppn()
                     };
-                    self.identity_mapping(new_table, level - 1, ppn);
+                    new_table.as_mut().unwrap().identity_mapping(level - 1, ppn);
                     let mut new_entry = Entry::new();
                     new_entry.as_next_ptr();
                     new_entry.set_ppn((new_table as usize) >> 2);
-                    (*table).entries[vpn[level]] = new_entry;
-                    table = new_table;
+                    table.update_entry(vpn[level], new_entry);
+                    // table.entries[vpn[level]] = new_entry;
+                    table = new_table.as_mut().unwrap();
                 } else {
                     let new_table = ((*table).entries[vpn[level]].get_ppn() << 2) as *mut PageTable;
-                    table = new_table;
+                    table = new_table.as_mut().unwrap();
                 }
             }
             let mut new_entry = Entry::new();
             new_entry.set_flags(true, r, w, x, u);
             new_entry.set_ppn(paddr >> 2);
-            (*table).entries[vpn[0]] = new_entry;
+            table.update_entry(vpn[0], new_entry);
+            // table.entries[vpn[0]] = new_entry;
         }
         Ok(())
     }
@@ -214,7 +226,7 @@ impl VMManager {
         self.set_table("kernel".to_string(), root_table);
         unsafe {
             let root_table = self.get_table("kernel");
-            self.identity_mapping(root_table, 2, 0);
+            (*root_table).identity_mapping(2, 0);
             self.map(
                 "kernel",
                 trampoline as usize,

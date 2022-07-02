@@ -128,12 +128,24 @@ impl PageTable {
         (self as *const PageTable) as usize
     }
 
-    pub fn entry_length(&self) -> usize {
+    pub fn size(&self) -> usize {
         self.entries.len()
     }
 
     pub fn update_entry(&mut self, index: usize, entry: Entry) {
         self.entries[index] = entry
+    }
+
+    pub fn identity_mapping(&mut self, level: usize, old: usize) {
+        for i in 0..self.size() {
+            let paddr = (i << (12 + 9 * level)) | old;
+            let mut entry = Entry::default();
+            entry.as_block();
+            entry.set_attr(PTE::NORMAL_CACHEABLE.bits());
+            entry.set_af();
+            entry.set_oa(paddr);
+            self.update_entry(i, entry);
+        }
     }
 }
 
@@ -174,20 +186,6 @@ impl VMManager {
             }
         }
         attr
-    }
-
-    pub fn identity_mapping(&self, table: *mut PageTable, level: usize, old: usize) {
-        unsafe {
-            for i in 0..(*table).entry_length() {
-                let paddr = (i << (12 + 9 * level)) | old;
-                (*table).update_entry(
-                    i,
-                    Entry(
-                        PTE::BLOCK.bits() | PTE::NORMAL_CACHEABLE.bits() | PTE::AF.bits() | paddr,
-                    ),
-                );
-            }
-        }
     }
 
     pub fn map_device_memory(&self, table: *mut PageTable) -> Result<(), VMError> {
@@ -237,7 +235,7 @@ impl VMManager {
 
     pub fn map_page(
         &self,
-        mut table: *mut PageTable,
+        table: *mut PageTable,
         paddr: usize,
         vaddr: usize,
         r: bool,
@@ -246,6 +244,7 @@ impl VMManager {
         u: bool,
         attr: usize,
     ) -> Result<(), VMError> {
+        let mut table = unsafe { table.as_mut().unwrap() };
         let indexes = vec![
             (vaddr >> 12) & 0x1ff,
             (vaddr >> 21) & 0x1ff,
@@ -262,15 +261,15 @@ impl VMManager {
                         entry.get_oa()
                     };
                     let child = level - 1;
-                    self.identity_mapping(new_table, child, old);
+                    new_table.as_mut().unwrap().identity_mapping(child, old);
                     let mut new_entry = Entry::default();
                     new_entry.as_table();
                     new_entry.set_oa(new_table as usize);
-                    (*table).entries[indexes[level]] = new_entry;
-                    table = new_table;
+                    table.update_entry(indexes[level], new_entry);
+                    table = new_table.as_mut().unwrap();
                 } else {
                     let new_table = ((*table).entries[indexes[level]].get_oa()) as *mut PageTable;
-                    table = new_table;
+                    table = new_table.as_mut().unwrap();
                 }
             }
             let mut new_entry = Entry::default();
@@ -279,7 +278,7 @@ impl VMManager {
             new_entry.set_oa(paddr);
             new_entry.set_attr(attr);
             new_entry.set_af();
-            (*table).entries[indexes[0]] = new_entry;
+            table.update_entry(indexes[0], new_entry);
         }
         Ok(())
     }
@@ -314,7 +313,9 @@ impl VMManager {
         let root_table = self.create_table();
         self.set_table("kernel", root_table);
         assert!(self.root_tables.contains_key("kernel"));
-        self.identity_mapping(root_table, 3, 0);
+        unsafe {
+            root_table.as_mut().unwrap().identity_mapping(3, 0);
+        }
         self.map_device_memory(root_table).unwrap();
 
         // Is root_table aligned to 2^12?
@@ -323,6 +324,8 @@ impl VMManager {
         let mut tcr_el1: usize = 0;
         // T0SZ = 25 (The region size is 2^39)
         tcr_el1 |= 0x19;
+        // T1SZ = 25
+        tcr_el1 |= 0x19 << 16;
         // IRGN0: Normal memory, Inner Write-Back Read-Allocate Write-Allocate Cacheable
         tcr_el1 |= 0b1 << 8;
         // ORGN0: Normal memory, Outer Write-Back Read-Allocate Write-Allocate Cacheable
