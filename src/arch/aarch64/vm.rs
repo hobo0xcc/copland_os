@@ -133,7 +133,13 @@ impl PageTable {
     }
 
     pub fn update_entry(&mut self, index: usize, entry: Entry) {
+        assert!(index < self.size());
         self.entries[index] = entry
+    }
+
+    pub fn get_entry(&self, index: usize) -> Entry {
+        assert!(index < self.size());
+        self.entries[index]
     }
 
     pub fn identity_mapping(&mut self, level: usize, old: usize) {
@@ -210,7 +216,7 @@ impl VMManager {
 
     pub fn walk(&self, name: &str, vaddr: usize) -> Result<usize, VMError> {
         use crate::*;
-        let mut table = self.get_table(name);
+        let mut table = unsafe { self.get_table(name).as_mut().unwrap() };
         let vaddr_page = vaddr & !0xfff_usize;
         println!("vaddr_page: {:#x}", vaddr_page);
         let indexes = vec![
@@ -219,7 +225,7 @@ impl VMManager {
             (vaddr_page >> 30) & 0x1ff,
         ];
         for level in (1..LEVELS).rev() {
-            let entry = unsafe { (*table).entries[indexes[level]] };
+            let entry = table.get_entry(indexes[level]);
             if entry.is_invalid() {
                 return Err(VMError::NotFound);
             }
@@ -228,9 +234,13 @@ impl VMManager {
                 return Ok((entry.get_oa() & !mask) + (vaddr & mask));
             }
             // next page table
-            table = (entry.get_oa() & PTE::OA.bits()) as *mut PageTable;
+            table = unsafe {
+                ((entry.get_oa() & PTE::OA.bits()) as *mut PageTable)
+                    .as_mut()
+                    .unwrap()
+            };
         }
-        unsafe { Ok(((*table).entries[indexes[0]].get_oa() & PTE::OA.bits()) + (vaddr & 0xfff)) }
+        Ok((table.get_entry(indexes[0]).get_oa() & PTE::OA.bits()) + (vaddr & 0xfff))
     }
 
     pub fn map_page(
@@ -252,7 +262,7 @@ impl VMManager {
         ];
         unsafe {
             for level in (1..LEVELS).rev() {
-                let entry = (*table).entries[indexes[level]];
+                let entry = table.get_entry(indexes[level]);
                 if entry.is_block() || entry.is_invalid() {
                     let new_table = self.create_table();
                     let old = if entry.is_invalid() {
@@ -268,7 +278,7 @@ impl VMManager {
                     table.update_entry(indexes[level], new_entry);
                     table = new_table.as_mut().unwrap();
                 } else {
-                    let new_table = ((*table).entries[indexes[level]].get_oa()) as *mut PageTable;
+                    let new_table = (table.get_entry(indexes[level]).get_oa()) as *mut PageTable;
                     table = new_table.as_mut().unwrap();
                 }
             }

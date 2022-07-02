@@ -120,6 +120,11 @@ impl PageTable {
         assert!(index < self.size());
         self.entries[index] = entry;
     }
+
+    pub fn get_entry(&self, index: usize) -> Entry {
+        assert!(index < self.size());
+        self.entries[index]
+    }
 }
 
 pub struct VMManager {
@@ -154,7 +159,7 @@ impl VMManager {
         ];
         unsafe {
             for level in (1..LEVELS).rev() {
-                let entry = (*table).entries[vpn[level]];
+                let entry = table.get_entry(vpn[level]);
                 if entry.is_leaf() || entry.is_invalid() {
                     let new_table = self.create_table();
                     let ppn = if entry.is_invalid() {
@@ -167,10 +172,9 @@ impl VMManager {
                     new_entry.as_next_ptr();
                     new_entry.set_ppn((new_table as usize) >> 2);
                     table.update_entry(vpn[level], new_entry);
-                    // table.entries[vpn[level]] = new_entry;
                     table = new_table.as_mut().unwrap();
                 } else {
-                    let new_table = ((*table).entries[vpn[level]].get_ppn() << 2) as *mut PageTable;
+                    let new_table = (table.get_entry(vpn[level]).get_ppn() << 2) as *mut PageTable;
                     table = new_table.as_mut().unwrap();
                 }
             }
@@ -178,7 +182,6 @@ impl VMManager {
             new_entry.set_flags(true, r, w, x, u);
             new_entry.set_ppn(paddr >> 2);
             table.update_entry(vpn[0], new_entry);
-            // table.entries[vpn[0]] = new_entry;
         }
         Ok(())
     }
@@ -225,8 +228,8 @@ impl VMManager {
         let root_table = self.create_table();
         self.set_table("kernel".to_string(), root_table);
         unsafe {
-            let root_table = self.get_table("kernel");
-            (*root_table).identity_mapping(2, 0);
+            let root_table = self.get_table("kernel").as_mut().unwrap();
+            root_table.identity_mapping(2, 0);
             self.map(
                 "kernel",
                 trampoline as usize,
