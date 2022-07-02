@@ -147,6 +147,7 @@ impl PageTable {
             let paddr = (i << (12 + 9 * level)) | old;
             let mut entry = Entry::default();
             entry.as_block();
+            entry.set_flags(true, true, true, false);
             entry.set_attr(PTE::NORMAL_CACHEABLE.bits());
             entry.set_af();
             entry.set_oa(paddr);
@@ -358,9 +359,10 @@ impl VMManager {
             asm!("msr tcr_el1, {}", in(reg)tcr_el1);
             asm!("msr mair_el1, {}", in(reg)mair_el1);
 
-            // Invalidate TLBs
             asm!("dsb sy");
             asm!("isb");
+            // Invalidate TLB
+            asm!("tlbi vmalle1");
 
             asm!("msr ttbr0_el1, {}", in(reg)root_table);
 

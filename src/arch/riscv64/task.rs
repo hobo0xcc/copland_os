@@ -10,6 +10,7 @@ use alloc::alloc::{alloc_zeroed, Layout};
 use alloc::format;
 use alloc::string::*;
 use core::arch::{asm, global_asm};
+use core::mem::size_of;
 use hashbrown::HashMap;
 
 pub const USER_CONTEXT: usize = 0x3f_ffff_e000;
@@ -239,6 +240,7 @@ impl Task {
         page_table_name: String,
         page_table: *mut PageTable,
     ) -> Self {
+        assert!(size_of::<UserContext>() <= PAGE_SIZE);
         let ucontext = unsafe {
             let layout = Layout::from_size_align(PAGE_SIZE, PAGE_SIZE).unwrap();
             alloc_zeroed(layout)

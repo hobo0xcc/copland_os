@@ -162,6 +162,8 @@ pub unsafe extern "C" fn init() {
     }
     println!();
 
+    sandbox::dwc::dwc();
+
     loop {
         task::TASK_MANAGER.schedule();
     }
