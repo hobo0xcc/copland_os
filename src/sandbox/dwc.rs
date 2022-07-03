@@ -57,5 +57,6 @@ pub fn dwc() {
         (&regs.power as *const Volatile<u32> as *const u8 as usize) & 0xfff,
         0xe00
     );
+    println!("vendor_id: {:#x}", regs.vendor_id.read());
     println!("DWC OK!");
 }

@@ -201,27 +201,6 @@ pub struct UserContext {
     t6: usize,            // 280
 }
 
-impl KernelContext {
-    pub fn new() -> Self {
-        Self {
-            ra: 0,
-            sp: 0,
-            s0: 0,
-            s1: 0,
-            s2: 0,
-            s3: 0,
-            s4: 0,
-            s5: 0,
-            s6: 0,
-            s7: 0,
-            s8: 0,
-            s9: 0,
-            s10: 0,
-            s11: 0,
-        }
-    }
-}
-
 #[allow(dead_code)]
 pub struct Task {
     id: TaskId,

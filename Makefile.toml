@@ -70,14 +70,16 @@ qemu-system-riscv64 -machine virt -bios none -m $MEMORY -smp $CORE -serial stdio
 dependencies = ["build-aarch64-dev", "make-disk"]
 script = '''
 qemu-system-aarch64 -s -machine raspi3b -m $MEMORY -serial null -serial stdio -kernel $BIN \
-    -drive file=$DISK,if=sd,format=raw
+    -drive file=$DISK,if=sd,format=raw \
+    -device usb-kbd
 '''
 
 [tasks.run-aarch64]
 dependencies = ["build-aarch64", "make-disk"]
 script = '''
 qemu-system-aarch64 -machine raspi3b -m $MEMORY -serial null -serial stdio -kernel $BIN \
-    -drive file=$DISK,if=sd,format=raw
+    -drive file=$DISK,if=sd,format=raw \
+    -device usb-kbd
 '''
 
 [tasks.debug-riscv64-dev]
