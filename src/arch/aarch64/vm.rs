@@ -196,7 +196,8 @@ impl VMManager {
     }
 
     pub fn map_device_memory(&self, table: *mut PageTable) -> Result<(), VMError> {
-        if cfg!(target_board = "raspi3b") {
+        #[cfg(target_board = "raspi3b")]
+        {
             use crate::device::raspi3b::base::*;
             for page in (MMIO_BASE..(MMIO_BASE + MMIO_SIZE)).step_by(PAGE_SIZE) {
                 assert!(page % PAGE_SIZE == 0);
