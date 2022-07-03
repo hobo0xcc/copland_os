@@ -26,6 +26,8 @@ unsafe impl Allocator for System {
         use crate::arch::aarch64::address::_heap_start;
         #[cfg(target_arch = "riscv64")]
         use crate::arch::riscv64::address::_heap_start;
+        #[cfg(target_arch = "x86_64")]
+        let _heap_start = 0;
         let prev = unsafe {
             if *self.pos.get() == 0 {
                 *self.pos.get() = _heap_start as usize;

@@ -1,12 +1,38 @@
 [env]
 ARCH = "default"
-BIN = "kernel.elf"
+GEN = "copland_os"
+BIN = "kernel.bin"
 BOARD = "default"
 CORE = "1"
 DISK = "disk.img"
+DISK_UEFI = "disk-uefi.img"
 DISK_SIZE = "256M"
 MEMORY = "1G"
 MODE = "debug"
+
+[tasks.make-disk-uefi]
+script = '''
+if [ $ARCH = "x86_64-unknown-uefi" ]; then
+    if [ ! -f "$DISK_UEFI" ]; then
+        qemu-img create -f raw "$DISK_UEFI" $DISK_SIZE
+        mkfs.fat -n 'DISK' -F 32 "$DISK_UEFI"
+    fi
+    if [ "$(uname)" == "Darwin" ]; then
+        hdiutil attach -mountpoint mnt $DISK_UEFI
+    else if [ "$(uname)" == "Linux" ]; then
+        mount -o loop $DISK_UEFI mnt
+    fi
+    fi
+    mkdir -p ./mnt/EFI/BOOT
+    cp $BIN ./mnt/EFI/BOOT/BOOTX64.EFI
+    if [ "$(uname)" == "Darwin" ]; then
+        hdiutil detach mnt
+    else if [ "$(uname)" == "Linux" ]; then
+        umount mnt && rm -rf mnt
+    fi
+    fi
+fi
+'''
 
 [tasks.make-disk]
 script = '''
@@ -32,7 +58,7 @@ else
     fi
 fi
 
-cp ./target/$ARCH/$MODE/copland_os $BIN
+cp ./target/$ARCH/$MODE/$GEN $BIN
 '''
 [tasks.build-riscv64-dev]
 env = {ARCH = "riscv64gc-unknown-none-elf", MODE = "debug"}
@@ -48,6 +74,14 @@ run_task = "build"
 
 [tasks.build-aarch64]
 env = {ARCH = "aarch64-unknown-none-softfloat", MODE = "release"}
+run_task = "build"
+
+[tasks.build-x86_64-dev]
+env = {ARCH = "x86_64-unknown-uefi", MODE = "debug", GEN = "copland_os.efi"}
+run_task = "build"
+
+[tasks.build-x86_64]
+env = {ARCH = "x86_64-unknown-uefi", MODE = "release", GEN = "copland_os.efi"}
 run_task = "build"
 
 [tasks.run-riscv64-dev]
@@ -70,16 +104,32 @@ qemu-system-riscv64 -machine virt -bios none -m $MEMORY -smp $CORE -serial stdio
 dependencies = ["build-aarch64-dev", "make-disk"]
 script = '''
 qemu-system-aarch64 -s -machine raspi3b -m $MEMORY -serial null -serial stdio -kernel $BIN \
-    -drive file=$DISK,if=sd,format=raw \
-    -device usb-kbd
+    -drive file=$DISK,if=sd,format=raw
 '''
 
 [tasks.run-aarch64]
 dependencies = ["build-aarch64", "make-disk"]
 script = '''
 qemu-system-aarch64 -machine raspi3b -m $MEMORY -serial null -serial stdio -kernel $BIN \
-    -drive file=$DISK,if=sd,format=raw \
-    -device usb-kbd
+    -drive file=$DISK,if=sd,format=raw
+'''
+
+[tasks.run-x86_64-dev]
+dependencies = ["build-x86_64-dev", "make-disk-uefi"]
+script = '''
+qemu-system-x86_64 \
+    -drive if=pflash,format=raw,file=./tools/ovmf/OVMF_CODE.fd \
+    -drive if=pflash,format=raw,file=./tools/ovmf/OVMF_VARS.fd \
+    -drive format=raw,media=disk,index=0,file=$DISK_UEFI
+'''
+
+[tasks.run-x86_64]
+dependencies = ["build-x86_64", "make-disk-uefi"]
+script = '''
+qemu-system-x86_64 \
+    -drive if=pflash,format=raw,file=./tools/ovmf/OVMF_CODE.fd \
+    -drive if=pflash,format=raw,file=./tools/ovmf/OVMF_VARS.fd \
+    -drive format=raw,media=disk,index=0,file=$DISK_UEFI
 '''
 
 [tasks.debug-riscv64-dev]
@@ -101,18 +151,20 @@ qemu-system-riscv64 -s -S -machine virt -bios none -m $MEMORY -smp $CORE -serial
 [tasks.debug-aarch64-dev]
 dependencies = ["build-aarch64-dev", "make-disk"]
 script = '''
-qemu-system-aarch64 -s -S -machine raspi3b -m $MEMORY -serial null -serial stdio -kernel $BIN
+qemu-system-aarch64 -s -S -machine raspi3b -m $MEMORY -serial null -serial stdio -kernel $BIN \
+    -drive file=$DISK,if=sd,format=raw
 '''
 
 [tasks.debug-aarch64]
 dependencies = ["build-aarch64", "make-disk"]
 script = '''
-qemu-system-aarch64 -s -S -machine raspi3b -m $MEMORY -serial null -serial stdio -kernel $BIN
+qemu-system-aarch64 -s -S -machine raspi3b -m $MEMORY -serial null -serial stdio -kernel $BIN \
+    -drive file=$DISK,if=sd,format=raw
 '''
 
 [tasks.clean]
 script = '''
-rm -rf $BIN $DISK
+rm -rf $BIN $DISK $DISK_UEFI
 cargo clean
 '''
 

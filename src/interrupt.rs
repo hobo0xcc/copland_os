@@ -28,6 +28,8 @@ impl Backup for DummyBackup {
 pub type ArchInterruptFlag = InterruptFlag<crate::arch::riscv64::riscv::InterruptFlag>;
 #[cfg(target_arch = "aarch64")]
 pub type ArchInterruptFlag = InterruptFlag<DummyBackup>;
+#[cfg(target_arch = "x86_64")]
+pub type ArchInterruptFlag = InterruptFlag<DummyBackup>;
 
 #[derive(ConstDefault)]
 pub struct InterruptFlag<T: Backup> {

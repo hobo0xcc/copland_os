@@ -1,6 +1,7 @@
 #![no_std]
 #![no_main]
 #![feature(start, naked_functions)]
+#![allow(unused_imports)]
 
 extern crate alloc;
 
@@ -18,6 +19,8 @@ pub unsafe extern "C" fn _entry() -> ! {
     asm!("j boot", options(noreturn));
     #[cfg(target_arch = "aarch64")]
     asm!("b boot", options(noreturn));
+    #[cfg(target_arch = "x86_64")]
+    asm!("jmp _entry", options(noreturn));
 }
 
 // Boot assembly for each ISA
@@ -28,6 +31,8 @@ pub unsafe extern "C" fn boot() -> ! {
     asm!(include_str!("arch/riscv64/boot.S"), options(noreturn));
     #[cfg(target_arch = "aarch64")]
     asm!(include_str!("arch/aarch64/boot.S"), options(noreturn));
+    #[cfg(target_arch = "x86_64")]
+    asm!("jmp _entry", options(noreturn));
 }
 
 #[no_mangle]

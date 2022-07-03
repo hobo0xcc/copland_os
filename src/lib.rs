@@ -1,6 +1,8 @@
 #![no_std]
 #![no_main]
 #![feature(alloc_error_handler, once_cell, never_type, panic_info_message)]
+#![cfg_attr(target_arch = "x86_64", feature(abi_efiapi))]
+#![allow(unused_variables)]
 
 extern crate alloc;
 

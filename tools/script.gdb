@@ -1,2 +1,2 @@
 target remote localhost:1234
-file kernel.elf
+file kernel.bin

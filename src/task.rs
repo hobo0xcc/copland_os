@@ -13,11 +13,7 @@ use goblin::elf;
 use hashbrown::HashMap;
 use log::info;
 
-#[cfg(target_arch = "riscv64")]
-use crate::arch::riscv64;
-
-#[cfg(target_arch = "aarch64")]
-use crate::arch::aarch64;
+use crate::arch::*;
 
 macro_rules! arch_task_manager {
     () => {
@@ -27,6 +23,9 @@ macro_rules! arch_task_manager {
 
             #[cfg(target_arch = "aarch64")]
             break &mut aarch64::task::ARCH_TASK_MANAGER;
+
+            #[cfg(target_arch = "x86_64")]
+            break &mut x86_64::task::ARCH_TASK_MANAGER;
         }
     };
 }
