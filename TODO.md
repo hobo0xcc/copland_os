@@ -7,7 +7,7 @@
   - [x] Block
   - [ ] GPU
   - [ ] Input
-- [ ] user app
+- [x] user app
 - [ ] system call
 
 # Arm
@@ -35,7 +35,7 @@
 - [ ] window system
   - https://github.com/ghaerr/microwindows
   - wayland?
-- [ ] x86_64 support
-  - [ ] boot
-    - UEFI?
-  - [ ] print
+- [x] x86_64 support
+  - [x] boot
+    - [x] UEFI
+  - [x] print

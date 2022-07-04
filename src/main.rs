@@ -5,9 +5,9 @@
 
 extern crate alloc;
 
-use copland_os::*;
 use core::arch::asm;
 use log::info;
+use neverland::*;
 
 // It will merely jump to `boot`. Don't do anything else.
 #[no_mangle]
@@ -20,7 +20,7 @@ pub unsafe extern "C" fn _entry() -> ! {
     #[cfg(target_arch = "aarch64")]
     asm!("b boot", options(noreturn));
     #[cfg(target_arch = "x86_64")]
-    asm!("jmp _entry", options(noreturn));
+    asm!("jmp boot", options(noreturn));
 }
 
 // Boot assembly for each ISA
@@ -32,34 +32,34 @@ pub unsafe extern "C" fn boot() -> ! {
     #[cfg(target_arch = "aarch64")]
     asm!(include_str!("arch/aarch64/boot.S"), options(noreturn));
     #[cfg(target_arch = "x86_64")]
-    asm!("jmp _entry", options(noreturn));
+    asm!(include_str!("arch/x86_64/boot.S"), options(noreturn));
 }
 
 #[no_mangle]
 #[cfg(target_arch = "riscv64")]
 pub unsafe extern "C" fn main() -> ! {
-    copland_os::KERNEL_LOCK.lock();
+    neverland::KERNEL_LOCK.lock();
 
-    copland_os::logger::init_logger();
-    copland_os::allocator::init_allocator();
+    neverland::logger::init_logger();
+    neverland::allocator::init_allocator();
 
     println!("PRESENT DAY\n  PRESENT TIME");
 
     info!("Arch: RISC-V");
-    info!("Core: {}", copland_os::arch::riscv64::riscv::STATE.cpuid());
+    info!("Core: {}", neverland::arch::riscv64::riscv::STATE.cpuid());
 
     {
-        use copland_os::arch::riscv64::*;
+        use neverland::arch::riscv64::*;
         vm::VM_MANAGER.init();
     }
 
-    copland_os::task::TASK_MANAGER.init().unwrap();
+    neverland::task::TASK_MANAGER.init().unwrap();
 
-    let id = copland_os::task::TASK_MANAGER
+    let id = neverland::task::TASK_MANAGER
         .create_task("init", init as usize)
         .unwrap();
-    copland_os::task::TASK_MANAGER.ready_task(id);
-    copland_os::task::TASK_MANAGER.schedule();
+    neverland::task::TASK_MANAGER.ready_task(id);
+    neverland::task::TASK_MANAGER.schedule();
 
     loop {}
 }
@@ -78,7 +78,7 @@ pub unsafe extern "C" fn main() -> ! {
     info!("Core: {}", crate::arch::aarch64::arm::STATE.cpuid());
 
     {
-        use copland_os::arch::aarch64::*;
+        use neverland::arch::aarch64::*;
         vm::VM_MANAGER.init();
     }
 
@@ -95,22 +95,22 @@ pub unsafe extern "C" fn main() -> ! {
 
 #[cfg(target_arch = "riscv64")]
 pub unsafe extern "C" fn init() {
-    use copland_os::arch::riscv64;
-    use copland_os::device::common::virtio;
+    use neverland::arch::riscv64;
+    use neverland::device::common::virtio;
 
     info!("init");
 
     riscv64::plic::PLIC_MANAGER.init_irq(riscv64::plic::PlicIRQ::VirtIO0);
     virtio::block::VIRTIO_BLOCK.init(riscv64::address::_virtio_start as usize);
 
-    let root_dir = copland_os::fs::fat32::FILE_SYSTEM.root_dir();
+    let root_dir = neverland::fs::fat32::FILE_SYSTEM.root_dir();
     root_dir.create_file("bbb.txt").unwrap();
     for e in root_dir.iter().map(|e| e.unwrap()) {
         println!("{}", e.file_name());
     }
 
     loop {
-        copland_os::task::TASK_MANAGER.schedule();
+        neverland::task::TASK_MANAGER.schedule();
     }
 }
 

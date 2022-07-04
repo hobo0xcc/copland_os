@@ -1,6 +1,6 @@
-# Copland OS
+# Neverland
 
-This project is a work in progress. By the way, *Have you ever seen the lain?*
+This project is a work in progress.
 
 # Requirements
 
@@ -69,3 +69,7 @@ rust-gdb -x tools/script.gdb
 ## aarch64
 
 - raspi3b (wip)
+
+## x86_64
+
+- uefi (wip)
