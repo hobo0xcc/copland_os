@@ -1,2 +1,1 @@
-loop:
-    jmp loop
+hlt
