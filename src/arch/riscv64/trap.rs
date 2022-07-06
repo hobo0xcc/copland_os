@@ -1,7 +1,7 @@
 use crate::arch::riscv64::csr::*;
 use crate::arch::riscv64::*;
+use crate::device::common::uart::UART;
 use crate::device::common::virtio::block;
-use crate::device::virt::uart::UART;
 use crate::*;
 use core::arch::global_asm;
 

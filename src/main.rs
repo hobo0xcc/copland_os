@@ -99,9 +99,9 @@ pub unsafe extern "C" fn main() -> ! {
 #[no_mangle]
 #[cfg(target_arch = "x86_64")]
 pub unsafe extern "C" fn main(
-    memory_mao: &mut MemoryMap,
+    _memory_mao: &mut MemoryMap,
     fb: &mut FrameBuffer,
-    rsdp_addr: usize,
+    _rsdp_addr: usize,
 ) -> ! {
     for y in 0..fb.height {
         for x in 0..fb.width {
@@ -109,6 +109,7 @@ pub unsafe extern "C" fn main(
             fb.ptr.add(index).write(0xffff_ffff);
         }
     }
+    println!("Hello, world");
     loop {}
 }
 

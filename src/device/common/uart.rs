@@ -1,9 +1,15 @@
 #![allow(dead_code)]
 
+#[cfg(target_arch = "riscv64")]
 use crate::arch::riscv64::address;
+#[cfg(target_arch = "riscv64")]
+use volatile::Volatile;
+
+#[cfg(target_arch = "x86_64")]
+use x86_64::instructions::port::Port;
+
 use crate::lazy::Lazy;
 use core::fmt::{Error, Write};
-use volatile::Volatile;
 
 pub static mut UART: Lazy<Uart> = Lazy::<Uart, fn() -> Uart>::new(|| unsafe {
     let mut uart = Uart::new();
@@ -26,23 +32,47 @@ const LSR: usize = 5;
 const MSR: usize = 6;
 const SR: usize = 7;
 
+#[cfg(target_arch = "x86_64")]
+const SERIAL_PORT: u16 = 0x3F8;
+
 pub struct Uart {
+    #[cfg(not(target_arch = "x86_64"))]
     regs: &'static mut [Volatile<u8>; 8],
+    #[cfg(target_arch = "x86_64")]
+    ports: [Port<u8>; 8],
 }
 
 impl Uart {
     pub fn new() -> Self {
         Self {
+            #[cfg(not(target_arch = "x86_64"))]
             regs: unsafe { &mut *((address::_uart0_start as usize) as *mut [Volatile<u8>; 8]) },
+            #[cfg(target_arch = "x86_64")]
+            ports: [
+                Port::new(SERIAL_PORT + 0),
+                Port::new(SERIAL_PORT + 1),
+                Port::new(SERIAL_PORT + 2),
+                Port::new(SERIAL_PORT + 3),
+                Port::new(SERIAL_PORT + 4),
+                Port::new(SERIAL_PORT + 5),
+                Port::new(SERIAL_PORT + 6),
+                Port::new(SERIAL_PORT + 7),
+            ],
         }
     }
 
     unsafe fn write_reg(&mut self, index: usize, value: u8) {
-        self.regs[index].write(value)
+        #[cfg(not(target_arch = "x86_64"))]
+        self.regs[index].write(value);
+        #[cfg(target_arch = "x86_64")]
+        self.ports[index].write(value);
     }
 
-    unsafe fn read_reg(&self, index: usize) -> u8 {
-        self.regs[index].read()
+    unsafe fn read_reg(&mut self, index: usize) -> u8 {
+        #[cfg(not(target_arch = "x86_64"))]
+        return self.regs[index].read();
+        #[cfg(target_arch = "x86_64")]
+        return self.ports[index].read();
     }
 
     pub unsafe fn init(&mut self) {

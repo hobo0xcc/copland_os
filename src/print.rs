@@ -1,12 +1,12 @@
 #[macro_export]
 macro_rules! print {
     ($($args:tt)+) => {{
-		#[cfg(target_arch = "riscv64")]
+		#[cfg(any(target_arch = "riscv64", target_arch = "x86_64"))]
 		#[cfg(target_board = "virt")]
 		#[allow(unused_unsafe)]
         {
             use core::fmt::Write;
-            let _ = unsafe { write!(crate::device::virt::uart::UART, $($args)+) };
+            let _ = unsafe { write!(crate::device::common::uart::UART, $($args)+) };
         }
 
 		#[cfg(target_arch = "aarch64")]

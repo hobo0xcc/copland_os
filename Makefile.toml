@@ -125,7 +125,8 @@ qemu-system-x86_64 \
     -m $MEMORY \
     -drive if=pflash,format=raw,file=./tools/ovmf/OVMF_CODE.fd \
     -drive if=pflash,format=raw,file=./tools/ovmf/OVMF_VARS.fd \
-    -drive format=raw,media=disk,index=0,file=$DISK_UEFI
+    -drive format=raw,media=disk,index=0,file=$DISK_UEFI \
+    -serial stdio
 '''
 
 [tasks.run-x86_64]
@@ -135,7 +136,8 @@ qemu-system-x86_64 \
     -m $MEMORY \
     -drive if=pflash,format=raw,file=./tools/ovmf/OVMF_CODE.fd \
     -drive if=pflash,format=raw,file=./tools/ovmf/OVMF_VARS.fd \
-    -drive format=raw,media=disk,index=0,file=$DISK_UEFI
+    -drive format=raw,media=disk,index=0,file=$DISK_UEFI \
+    -serial stdio
 '''
 
 [tasks.debug-riscv64-dev]
@@ -176,7 +178,8 @@ qemu-system-x86_64 \
     -m $MEMORY \
     -drive if=pflash,format=raw,file=./tools/ovmf/OVMF_CODE.fd \
     -drive if=pflash,format=raw,file=./tools/ovmf/OVMF_VARS.fd \
-    -drive format=raw,media=disk,index=0,file=$DISK_UEFI
+    -drive format=raw,media=disk,index=0,file=$DISK_UEFI \
+    -serial stdio
 '''
 
 [tasks.debug-x86_64]
@@ -187,7 +190,8 @@ qemu-system-x86_64 \
     -m $MEMORY \
     -drive if=pflash,format=raw,file=./tools/ovmf/OVMF_CODE.fd \
     -drive if=pflash,format=raw,file=./tools/ovmf/OVMF_VARS.fd \
-    -drive format=raw,media=disk,index=0,file=$DISK_UEFI
+    -drive format=raw,media=disk,index=0,file=$DISK_UEFI \
+    -serial stdio
 '''
 
 [tasks.clean]

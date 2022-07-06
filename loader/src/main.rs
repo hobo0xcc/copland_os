@@ -143,13 +143,6 @@ fn efi_main(image: Handle, mut st: SystemTable<Boot>) -> Status {
     }
 
     let size_bytes = end - start;
-    writeln!(
-        st.stdout(),
-        "size: {} start: {:#x} end: {:#x}",
-        size_bytes,
-        start,
-        end
-    );
     st.boot_services()
         .allocate_pages(
             AllocateType::Address(start),
