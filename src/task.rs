@@ -205,17 +205,19 @@ impl TaskManager {
             let mut size = page_offset + ph.p_memsz as usize;
             size = size + (PAGE_SIZE - size % PAGE_SIZE); // Round up
             assert!(size % PAGE_SIZE == 0);
+
+            let offset = ph.p_offset as usize;
+            let file_size = ph.p_filesz as usize;
+            let mem_size = ph.p_memsz as usize;
             let program: *mut u8 = unsafe {
                 let layout = Layout::from_size_align(size, PAGE_SIZE).unwrap();
                 alloc_zeroed(layout)
             };
-            unsafe {
-                core::ptr::copy_nonoverlapping(
-                    (&buf).as_slice().as_ptr().add(ph.p_offset as usize),
-                    program.add(page_offset),
-                    ph.p_memsz as usize,
-                );
-            }
+            let program_slice = unsafe { core::slice::from_raw_parts_mut(program, size) };
+            program_slice[..file_size]
+                .copy_from_slice(&buf.as_slice()[offset..(offset + file_size)]);
+            program_slice[file_size..].fill(0);
+
             let mem_region = MemoryRegion {
                 paddr: program as usize,
                 vaddr: Some(ph.vm_range().start - page_offset),

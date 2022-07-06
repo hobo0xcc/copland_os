@@ -9,6 +9,9 @@ use core::arch::asm;
 use log::info;
 use neverland::*;
 
+#[cfg(target_arch = "x86_64")]
+use common::uefi::*;
+
 // It will merely jump to `boot`. Don't do anything else.
 #[no_mangle]
 #[start]
@@ -90,6 +93,22 @@ pub unsafe extern "C" fn main() -> ! {
     task::TASK_MANAGER.ready_task(id);
     task::TASK_MANAGER.schedule();
 
+    loop {}
+}
+
+#[no_mangle]
+#[cfg(target_arch = "x86_64")]
+pub unsafe extern "C" fn main(
+    memory_mao: &mut MemoryMap,
+    fb: &mut FrameBuffer,
+    rsdp_addr: usize,
+) -> ! {
+    for y in 0..fb.height {
+        for x in 0..fb.width {
+            let index = y * fb.stride + x;
+            fb.ptr.add(index).write(0xffff_ffff);
+        }
+    }
     loop {}
 }
 

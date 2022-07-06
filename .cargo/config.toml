@@ -4,7 +4,7 @@ build-std-features = ["compiler-builtins-mem"]
 features = ["host_dep"]
 
 [build]
-target = "aarch64-unknown-none-softfloat"
+target = "x86_64-unknown-none"
 
 [target.riscv64gc-unknown-none-elf]
 runner = "qemu-system-riscv64 -machine virt -bios none -m 256M -smp 4 -serial stdio -s -kernel "
@@ -16,4 +16,9 @@ rustflags = [
 runner = "qemu-system-aarch64 -machine raspi3b -m 1G -serial null -serial stdio -kernel "
 rustflags = [
   "-Clink-args=-Tlinker/raspi3b.ld",
+]
+
+[target.x86_64-unknown-none]
+rustflags = [
+    "-Clink-args=-Tlinker/x86_64.ld -no-pie"
 ]

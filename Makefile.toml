@@ -1,7 +1,7 @@
 [env]
 ARCH = "default"
 GEN = "neverland"
-BIN = "kernel.bin"
+BIN = "kernel.elf"
 BOARD = "default"
 CORE = "1"
 DISK = "disk.img"
@@ -12,7 +12,10 @@ MODE = "debug"
 
 [tasks.make-disk-uefi]
 script = '''
-if [ $ARCH = "x86_64-unknown-uefi" ]; then
+if [ $ARCH = "x86_64-unknown-none" ]; then
+    cd loader
+    cargo build
+    cd ..
     if [ ! -f "$DISK_UEFI" ]; then
         qemu-img create -f raw "$DISK_UEFI" $DISK_SIZE
         mkfs.fat -n 'DISK' -F 32 "$DISK_UEFI"
@@ -24,7 +27,8 @@ if [ $ARCH = "x86_64-unknown-uefi" ]; then
     fi
     fi
     mkdir -p ./mnt/EFI/BOOT
-    cp $BIN ./mnt/EFI/BOOT/BOOTX64.EFI
+    cp ./loader/target/x86_64-unknown-uefi/debug/loader.efi ./mnt/EFI/BOOT/BOOTX64.EFI
+    cp $BIN ./mnt/$BIN
     if [ "$(uname)" == "Darwin" ]; then
         hdiutil detach mnt
     else if [ "$(uname)" == "Linux" ]; then
@@ -77,11 +81,11 @@ env = {ARCH = "aarch64-unknown-none-softfloat", MODE = "release"}
 run_task = "build"
 
 [tasks.build-x86_64-dev]
-env = {ARCH = "x86_64-unknown-uefi", MODE = "debug", GEN = "neverland.efi"}
+env = {ARCH = "x86_64-unknown-none", MODE = "debug"}
 run_task = "build"
 
 [tasks.build-x86_64]
-env = {ARCH = "x86_64-unknown-uefi", MODE = "release", GEN = "neverland.efi"}
+env = {ARCH = "x86_64-unknown-none", MODE = "release"}
 run_task = "build"
 
 [tasks.run-riscv64-dev]
@@ -118,6 +122,7 @@ qemu-system-aarch64 -machine raspi3b -m $MEMORY -serial null -serial stdio -kern
 dependencies = ["build-x86_64-dev", "make-disk-uefi"]
 script = '''
 qemu-system-x86_64 \
+    -m $MEMORY \
     -drive if=pflash,format=raw,file=./tools/ovmf/OVMF_CODE.fd \
     -drive if=pflash,format=raw,file=./tools/ovmf/OVMF_VARS.fd \
     -drive format=raw,media=disk,index=0,file=$DISK_UEFI
@@ -127,6 +132,7 @@ qemu-system-x86_64 \
 dependencies = ["build-x86_64", "make-disk-uefi"]
 script = '''
 qemu-system-x86_64 \
+    -m $MEMORY \
     -drive if=pflash,format=raw,file=./tools/ovmf/OVMF_CODE.fd \
     -drive if=pflash,format=raw,file=./tools/ovmf/OVMF_VARS.fd \
     -drive format=raw,media=disk,index=0,file=$DISK_UEFI
@@ -162,10 +168,35 @@ qemu-system-aarch64 -s -S -machine raspi3b -m $MEMORY -serial null -serial stdio
     -drive file=$DISK,if=sd,format=raw
 '''
 
+[tasks.debug-x86_64-dev]
+dependencies = ["build-x86_64-dev", "make-disk-uefi"]
+script = '''
+qemu-system-x86_64 \
+    -s -S \
+    -m $MEMORY \
+    -drive if=pflash,format=raw,file=./tools/ovmf/OVMF_CODE.fd \
+    -drive if=pflash,format=raw,file=./tools/ovmf/OVMF_VARS.fd \
+    -drive format=raw,media=disk,index=0,file=$DISK_UEFI
+'''
+
+[tasks.debug-x86_64]
+dependencies = ["build-x86_64", "make-disk-uefi"]
+script = '''
+qemu-system-x86_64 \
+    -s -S \
+    -m $MEMORY \
+    -drive if=pflash,format=raw,file=./tools/ovmf/OVMF_CODE.fd \
+    -drive if=pflash,format=raw,file=./tools/ovmf/OVMF_VARS.fd \
+    -drive format=raw,media=disk,index=0,file=$DISK_UEFI
+'''
+
 [tasks.clean]
 script = '''
 rm -rf $BIN $DISK $DISK_UEFI
 cargo clean
+cd loader
+cargo clean
+cd ..
 '''
 
 [config]

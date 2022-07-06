@@ -27,7 +27,7 @@ fn main() {
         "default" => match arch_env.as_ref() {
             "riscv64gc-unknown-none-elf" => "virt",
             "aarch64-unknown-none-softfloat" => "raspi3b",
-            "x86_64-unknown-uefi" => "uefi",
+            "x86_64-unknown-none" => "x86_64",
             arch => unimplemented!("{}", arch),
         },
         board => board,

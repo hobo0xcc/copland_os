@@ -44,11 +44,11 @@ SECTIONS {
         *(.bss .bss.*)
         . = ALIGN(0x1000);
         PROVIDE(_bss_end = .);
-    }
 
-    PROVIDE(_stack_start = .);
-    . = . + 0x10000;
-    PROVIDE(_stack_end = .);
+        PROVIDE(_stack_start = .);
+        . = . + 0x10000;
+        PROVIDE(_stack_end = .);
+    }
 
     PROVIDE(_heap_start = .);
     PROVIDE(_heap_end = ORIGIN(RAM) + LENGTH(RAM));
