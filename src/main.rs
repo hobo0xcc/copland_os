@@ -41,6 +41,8 @@ pub unsafe extern "C" fn boot() -> ! {
 #[no_mangle]
 #[cfg(target_arch = "riscv64")]
 pub unsafe extern "C" fn main() -> ! {
+    use neverland::arch::riscv64;
+
     neverland::KERNEL_LOCK.lock();
 
     neverland::logger::init_logger();
@@ -49,12 +51,9 @@ pub unsafe extern "C" fn main() -> ! {
     println!("PRESENT DAY\n  PRESENT TIME");
 
     info!("Arch: RISC-V");
-    info!("Core: {}", neverland::arch::riscv64::riscv::STATE.cpuid());
+    info!("Core: {}", riscv64::riscv::STATE.cpuid());
 
-    {
-        use neverland::arch::riscv64::*;
-        vm::VM_MANAGER.init();
-    }
+    riscv64::vm::VM_MANAGER.init();
 
     neverland::task::TASK_MANAGER.init().unwrap();
 
@@ -70,6 +69,8 @@ pub unsafe extern "C" fn main() -> ! {
 #[no_mangle]
 #[cfg(target_arch = "aarch64")]
 pub unsafe extern "C" fn main() -> ! {
+    use neverland::arch::aarch64;
+
     KERNEL_LOCK.lock();
 
     logger::init_logger();
@@ -80,10 +81,7 @@ pub unsafe extern "C" fn main() -> ! {
     info!("Arch: AArch64");
     info!("Core: {}", crate::arch::aarch64::arm::STATE.cpuid());
 
-    {
-        use neverland::arch::aarch64::*;
-        vm::VM_MANAGER.init();
-    }
+    aarch64::vm::VM_MANAGER.init();
 
     task::TASK_MANAGER.init().unwrap();
 
