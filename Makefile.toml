@@ -1,14 +1,6 @@
-[env]
-ARCH = "default"
-GEN = "neverland"
-BIN = "kernel.elf"
-BOARD = "default"
-CORE = "1"
-DISK = "disk.img"
-DISK_UEFI = "disk-uefi.img"
-DISK_SIZE = "256M"
-MEMORY = "1G"
-MODE = "debug"
+env_files = [
+    "./default.env"
+]
 
 [tasks.make-disk-uefi]
 script = '''
@@ -104,6 +96,12 @@ qemu-system-riscv64 -machine virt -bios none -m $MEMORY -smp $CORE -serial stdio
     -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
 '''
 
+[tasks.test-riscv64]
+dependencies = ["build-riscv64-dev", "make-disk"]
+script = '''
+cargo test --target riscv64gc-unknown-none-elf
+'''
+
 [tasks.run-aarch64-dev]
 dependencies = ["build-aarch64-dev", "make-disk"]
 script = '''
@@ -116,6 +114,12 @@ dependencies = ["build-aarch64", "make-disk"]
 script = '''
 qemu-system-aarch64 -machine raspi3b -m $MEMORY -serial null -serial stdio -kernel $BIN \
     -drive file=$DISK,if=sd,format=raw
+'''
+
+[tasks.test-aarch64]
+dependencies = ["build-aarch64-dev"]
+script = '''
+cargo test --target aarch64-unknown-none-softfloat
 '''
 
 [tasks.run-x86_64-dev]
@@ -201,6 +205,14 @@ cargo clean
 cd loader
 cargo clean
 cd ..
+'''
+
+[tasks.clean-kernel]
+script='''
+rm -rf $BIN $DISK $DISK_UEFI
+cargo clean -p neverland
+cd loader
+cargo clean
 '''
 
 [config]

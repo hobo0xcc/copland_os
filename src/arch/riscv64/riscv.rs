@@ -7,11 +7,13 @@ use core::arch::asm;
 
 pub static mut STATE: Lazy<CpuState> = Lazy::<CpuState, fn() -> CpuState>::new(|| CpuState::new());
 
-pub struct CpuState {}
+pub struct CpuState {
+    disable_counter: usize,
+}
 
 impl CpuState {
     pub fn new() -> Self {
-        Self {}
+        Self { disable_counter: 0 }
     }
 
     pub fn cpuid(&self) -> CpuId {
@@ -23,12 +25,20 @@ impl CpuState {
         id
     }
 
-    pub fn interrupt_off(&self) {
-        Csr::Sstatus.write(Csr::Sstatus.read() & !Sstatus::SIE.mask())
+    pub fn interrupt_off(&mut self) {
+        if self.disable_counter >= 1 {
+            self.disable_counter -= 1;
+        }
+        if self.disable_counter == 0 {
+            Csr::Sstatus.write(Csr::Sstatus.read() & !Sstatus::SIE.mask())
+        }
     }
 
-    pub fn interrupt_on(&self) {
-        Csr::Sstatus.write(Csr::Sstatus.read() | Sstatus::SIE.mask())
+    pub fn interrupt_on(&mut self) {
+        if self.disable_counter == 0 {
+            Csr::Sstatus.write(Csr::Sstatus.read() | Sstatus::SIE.mask())
+        }
+        self.disable_counter += 1;
     }
 
     pub fn is_interrupt_on(&self) -> bool {

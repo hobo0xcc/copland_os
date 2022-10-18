@@ -208,7 +208,7 @@ impl TaskManager {
 
             let offset = ph.p_offset as usize;
             let file_size = ph.p_filesz as usize;
-            let mem_size = ph.p_memsz as usize;
+            let _mem_size = ph.p_memsz as usize;
             let program: *mut u8 = unsafe {
                 let layout = Layout::from_size_align(size, PAGE_SIZE).unwrap();
                 alloc_zeroed(layout)

@@ -53,9 +53,9 @@ pub unsafe extern "C" fn start() -> ! {
     asm!("li t0, 0xffff");
     asm!("csrw medeleg, t0");
 
-    let mut mie = Csr::Mie.read();
-    mie |= Mie::MTIE.mask();
-    Csr::Mie.write(mie);
+    // let mut mie = Csr::Mie.read();
+    // mie |= Mie::MTIE.mask();
+    // Csr::Mie.write(mie);
 
     let mut sie = Csr::Sie.read();
     sie |= Sie::SEIE.mask();

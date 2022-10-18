@@ -1,16 +1,46 @@
 #![no_std]
 #![no_main]
-#![feature(start, naked_functions)]
+#![feature(
+    start,
+    naked_functions,
+    panic_info_message,
+    never_type,
+    alloc_error_handler,
+    custom_test_frameworks,
+    once_cell
+)]
 #![allow(unused_imports)]
+#![test_runner(test::test_runner)]
+#![reexport_test_harness_main = "test_main"]
 
 extern crate alloc;
 
+pub mod allocator;
+pub mod arch;
+pub mod device;
+pub mod error;
+pub mod fs;
+pub mod interrupt;
+pub mod lazy;
+pub mod logger;
+pub mod panic;
+pub mod print;
+pub mod sandbox;
+pub mod sync;
+pub mod task;
+pub mod test;
+
 use core::arch::asm;
 use log::info;
-use neverland::*;
+use sync::mutex::KernelLock;
+
+#[cfg(test)]
+use qemu_exit::QEMUExit;
 
 #[cfg(target_arch = "x86_64")]
 use common::uefi::*;
+
+pub static mut KERNEL_LOCK: KernelLock = KernelLock::new();
 
 // It will merely jump to `boot`. Don't do anything else.
 #[no_mangle]
@@ -41,12 +71,15 @@ pub unsafe extern "C" fn boot() -> ! {
 #[no_mangle]
 #[cfg(target_arch = "riscv64")]
 pub unsafe extern "C" fn main() -> ! {
-    use neverland::arch::riscv64;
+    use arch::riscv64;
 
-    neverland::KERNEL_LOCK.lock();
+    KERNEL_LOCK.lock();
 
-    neverland::logger::init_logger();
-    neverland::allocator::init_allocator();
+    logger::init_logger();
+    allocator::init_allocator();
+
+    #[cfg(test)]
+    test_main();
 
     println!("PRESENT DAY\n  PRESENT TIME");
 
@@ -55,13 +88,13 @@ pub unsafe extern "C" fn main() -> ! {
 
     riscv64::vm::VM_MANAGER.init();
 
-    neverland::task::TASK_MANAGER.init().unwrap();
+    task::TASK_MANAGER.init().unwrap();
 
-    let id = neverland::task::TASK_MANAGER
+    let id = task::TASK_MANAGER
         .create_task("init", init as usize)
         .unwrap();
-    neverland::task::TASK_MANAGER.ready_task(id);
-    neverland::task::TASK_MANAGER.schedule();
+    task::TASK_MANAGER.ready_task(id);
+    task::TASK_MANAGER.schedule();
 
     loop {}
 }
@@ -69,12 +102,15 @@ pub unsafe extern "C" fn main() -> ! {
 #[no_mangle]
 #[cfg(target_arch = "aarch64")]
 pub unsafe extern "C" fn main() -> ! {
-    use neverland::arch::aarch64;
+    use arch::aarch64;
 
     KERNEL_LOCK.lock();
 
     logger::init_logger();
     allocator::init_allocator();
+
+    #[cfg(test)]
+    test_main();
 
     println!("PRESENT DAY\n  PRESENT TIME");
 
@@ -113,22 +149,23 @@ pub unsafe extern "C" fn main(
 
 #[cfg(target_arch = "riscv64")]
 pub unsafe extern "C" fn init() {
-    use neverland::arch::riscv64;
-    use neverland::device::common::virtio;
+    use arch::riscv64;
+    use device::common::virtio;
+    use qemu_exit::QEMUExit;
 
     info!("init");
 
     riscv64::plic::PLIC_MANAGER.init_irq(riscv64::plic::PlicIRQ::VirtIO0);
     virtio::block::VIRTIO_BLOCK.init(riscv64::address::_virtio_start as usize);
 
-    let root_dir = neverland::fs::fat32::FILE_SYSTEM.root_dir();
+    let root_dir = fs::fat32::FILE_SYSTEM.root_dir();
     root_dir.create_file("bbb.txt").unwrap();
     for e in root_dir.iter().map(|e| e.unwrap()) {
         println!("{}", e.file_name());
     }
 
     loop {
-        neverland::task::TASK_MANAGER.schedule();
+        task::TASK_MANAGER.schedule();
     }
 }
 

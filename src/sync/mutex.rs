@@ -1,15 +1,16 @@
-use crate::arch::CpuId;
+use crate::arch::{self, CpuId};
 use crate::interrupt::{ArchInterruptFlag, Backup};
 use const_default::ConstDefault;
 use core::cell::UnsafeCell;
+use core::convert::{AsMut, AsRef};
 use core::ops::{Deref, DerefMut};
 use core::sync::atomic::{AtomicBool, Ordering};
 
 pub struct KernelLock {
     locked: AtomicBool,
-    cpu_id: UnsafeCell<Option<CpuId>>,
+    // cpu_id: UnsafeCell<Option<CpuId>>,
     intr: AtomicBool,
-    intr_flag: UnsafeCell<ArchInterruptFlag>,
+    // intr_flag: UnsafeCell<ArchInterruptFlag>,
 }
 
 unsafe impl Sync for KernelLock {}
@@ -19,49 +20,29 @@ impl KernelLock {
     pub const fn new() -> Self {
         Self {
             locked: AtomicBool::new(false),
-            cpu_id: UnsafeCell::new(None),
             intr: AtomicBool::new(false),
-            intr_flag: UnsafeCell::new(ArchInterruptFlag::DEFAULT),
         }
     }
 
     #[allow(unused_variables)]
     pub unsafe fn lock(&self) {
-        if let Some(cpu_id) = *self.cpu_id.get() {
-            if cpu_id == crate::arch::cpu_id() {
-                return;
-            }
-        }
-
         loop {
             if let Ok(_) =
                 self.locked
                     .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
             {
-                *self.intr_flag.get() = ArchInterruptFlag::save_and_off();
+                // *self.intr_flag.get() = ArchInterruptFlag::save_and_off();
+                arch::interrupt_off();
                 break;
             }
         }
-
-        let cpu_id: CpuId = crate::arch::cpu_id();
-        *self.cpu_id.get() = Some(cpu_id);
     }
 
     #[allow(unused_variables)]
     pub unsafe fn unlock(&self) {
-        let cpu_id: CpuId = crate::arch::cpu_id();
-
-        if let Some(saved_cpu_id) = *self.cpu_id.get() {
-            if cpu_id != saved_cpu_id {
-                return;
-            }
-        } else {
-            panic!("unlock without lock");
-        }
-        *self.cpu_id.get() = None;
-
         self.locked.store(false, Ordering::Release);
-        self.intr_flag.get().as_ref().unwrap().restore();
+        // self.intr_flag.get().as_ref().unwrap().restore();
+        arch::interrupt_on();
     }
 
     pub unsafe fn complete_intr(&self) {
@@ -69,15 +50,17 @@ impl KernelLock {
         // self.intr.get().write(true);
     }
 
-    pub unsafe fn wait_intr(&self) {
+    pub unsafe fn wait_interrupt(&self) {
         self.intr.store(false, Ordering::SeqCst);
-        self.intr_flag.get().as_ref().unwrap().restore();
+        // self.intr_flag.get().as_ref().unwrap().restore();
+        crate::arch::interrupt_on();
         assert!(crate::arch::is_interrupt_on());
         // println!("wait_intr1");
         while !self.intr.load(Ordering::SeqCst) {}
         // println!("wait_intr2");
         assert!(self.intr.load(Ordering::SeqCst));
-        *self.intr_flag.get() = ArchInterruptFlag::save_and_off();
+        // *self.intr_flag.get() = ArchInterruptFlag::save_and_off();
+        crate::arch::interrupt_off();
         assert!(!crate::arch::is_interrupt_on());
         self.intr.store(false, Ordering::SeqCst);
     }
@@ -85,7 +68,7 @@ impl KernelLock {
 
 pub struct MutexGuard<'a, T> {
     mutex: &'a Mutex<T>,
-    intr_flag: ArchInterruptFlag,
+    // intr_flag: ArchInterruptFlag,
 }
 
 impl<T> Deref for MutexGuard<'_, T> {
@@ -102,63 +85,57 @@ impl<T> DerefMut for MutexGuard<'_, T> {
     }
 }
 
-impl<'a, T: 'a> Drop for MutexGuard<'a, T> {
-    fn drop(&mut self) {
-        unsafe {
-            *self.mutex.cpu_id.get() = None;
-        }
-        self.mutex.locked.store(false, Ordering::Release);
-        self.intr_flag.restore();
+impl<T> AsRef<T> for MutexGuard<'_, T> {
+    fn as_ref(&self) -> &T {
+        self.deref()
     }
 }
 
-unsafe impl<T> Sync for Mutex<T> {}
-unsafe impl<T> Send for Mutex<T> {}
+impl<T> AsMut<T> for MutexGuard<'_, T> {
+    fn as_mut(&mut self) -> &mut T {
+        self.deref_mut()
+    }
+}
+
+impl<'a, T: 'a> Drop for MutexGuard<'a, T> {
+    fn drop(&mut self) {
+        self.mutex.locked.store(false, Ordering::Release);
+        arch::interrupt_on();
+        // self.intr_flag.restore();
+    }
+}
 
 pub struct Mutex<T> {
     locked: AtomicBool,
     data: UnsafeCell<T>,
-    cpu_id: UnsafeCell<Option<CpuId>>,
+    // cpu_id: UnsafeCell<Option<CpuId>>,
 }
+
+unsafe impl<T> Sync for Mutex<T> {}
+unsafe impl<T> Send for Mutex<T> {}
 
 impl<T> Mutex<T> {
     pub fn new(value: T) -> Self {
         Self {
             locked: AtomicBool::new(false),
             data: UnsafeCell::new(value),
-            cpu_id: UnsafeCell::new(None),
+            // cpu_id: UnsafeCell::new(None),
         }
     }
 
     pub fn lock(&self) -> MutexGuard<'_, T> {
-        unsafe {
-            if let Some(cpu_id) = *self.cpu_id.get() {
-                if cpu_id == crate::arch::cpu_id() {
-                    return MutexGuard {
-                        mutex: self,
-                        intr_flag: ArchInterruptFlag::save_and_off(),
-                    };
-                }
-            }
-        }
-
         let guard = loop {
             if let Ok(_) =
                 self.locked
                     .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
             {
+                arch::interrupt_off();
                 break MutexGuard {
                     mutex: self,
-                    intr_flag: ArchInterruptFlag::save_and_off(),
+                    // intr_flag: ArchInterruptFlag::save_and_off(),
                 };
             }
         };
-
-        let cpu_id: CpuId = crate::arch::cpu_id();
-
-        unsafe {
-            *self.cpu_id.get() = Some(cpu_id);
-        }
 
         guard
     }

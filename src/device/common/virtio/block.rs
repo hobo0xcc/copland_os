@@ -244,7 +244,7 @@ impl VirtIOBlock<'_> {
         self.header.queue_notify.write(0);
         while !self.complete[indexes[0] as usize].read() {
             unsafe {
-                KERNEL_LOCK.wait_intr();
+                KERNEL_LOCK.wait_interrupt();
             }
         }
 

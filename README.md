@@ -6,7 +6,7 @@ This project is a work in progress.
 
 - Rust toolchain (nightly)
   - https://www.rust-lang.org/tools/install
-  - `rustup toolchain install nightly && rustup default nightly`
+  - `rustup toolchain install nightly`
 - cargo-make
   - https://github.com/sagiegurari/cargo-make
   - `cargo install cargo-make`
@@ -22,20 +22,20 @@ This project is a work in progress.
 
 ```bash
 # riscv64 virt
-makers build-riscv64-dev
+makers -e BOARD="virt" build-riscv64-dev
 
 # aarch64 raspi3b
-makers build-aarch64-dev
+makers -e BOARD="raspi3b" build-aarch64-dev
 ```
 
 ## Release build
 
 ```bash
 # riscv64 virt
-makers build-riscv64
+makers -e BOARD="virt" build-riscv64
 
 # aarch64 raspi3b
-makers build-aarch64
+makers -e BOARD="raspi3b" build-aarch64
 ```
 
 The compiled kernel binary is `./kernel.elf` .
@@ -53,7 +53,8 @@ makers run-[riscv64 | aarch64] # this requires QEMU
 # Debug with gdb
 
 ```bash
-makers debug-[riscv64 | aarch64]-dev
+makers debug-[riscv64 | aarch64]-dev # debug mode kernel
+makers debug-[riscv64 | aarch64] # release mode kernel
 ```
 
 ```bash

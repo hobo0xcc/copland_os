@@ -20,6 +20,20 @@ pub fn cpu_id() -> CpuId {
     return 0;
 }
 
+pub fn interrupt_off() {
+    #[cfg(target_arch = "riscv64")]
+    unsafe {
+        riscv64::riscv::STATE.interrupt_off();
+    }
+}
+
+pub fn interrupt_on() {
+    #[cfg(target_arch = "riscv64")]
+    unsafe {
+        riscv64::riscv::STATE.interrupt_on();
+    }
+}
+
 pub fn is_interrupt_on() -> bool {
     #[cfg(target_arch = "riscv64")]
     return unsafe { riscv64::riscv::STATE.is_interrupt_on() };
